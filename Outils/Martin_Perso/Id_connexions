@@ -1,0 +1,4 @@
+local localhost 5432 postgres postgres Bdd_BAU
+lapi localhost 5432 postgres postgres lapi
+sftp_setra_gittadmin acoustique.cerema.fr 22 gittadmin bruitAcou00!
+station_gere 172.22.112.101 5432 postgres postgres Bdd_BAU
