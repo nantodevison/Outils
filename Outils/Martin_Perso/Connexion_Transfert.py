@@ -1,9 +1,11 @@
+# -*- coding: utf-8 -*-
 '''
 Created on 26 avr. 2017
 
 @author: Martin
 '''
 import sys
+from datetime import datetime
 from PyQt5.QtWidgets import QApplication
 import subprocess
 import psycopg2
@@ -13,13 +15,30 @@ from stat import S_ISDIR
 
 #fonction d'ouverture du fichier de parametres
 def ouvrirFichierParametre(typeParametres):
-    with open(r'C:\Users\Martin\.eclipse\workspace\Outils\Martin_Perso\Id_connexions','r') as f_id :
+    with open(r'C:\Users\martin.schoreisz\git\Outils\Outils\Martin_Perso\Id_connexions','r') as f_id :
         dicoParametres={}
         for texte in f_id :
             ligne=texte.strip().split(' ')
             dicoParametres[ligne[0]]=ligne[1:]
         return (dicoParametres[typeParametres])
-             
+ 
+def Ogr2ogr_pg2shp(connexionStringOgr,fichierShape, requeteSql,reprojection=''):
+        """
+        fonction d'export de postgres vers du shape
+        en entree : 
+        connexionOgr : issu de la classe ConnexionBdd, attribut connstringOgr
+        fichierShape : nom complet du fichier shape
+        reprojection: entier decrivant l'epsg, exemple : 2154
+        requeteSql : un string decrivant la requete sql de selection des donnees a exporter
+        """
+        connexion=connexionStringOgr.replace(' ','\"',1)
+        reprojection='-t_srs EPSG:'+str(reprojection) if reprojection!='' else ''
+        redirection_gdaldata="cd C:\Program Files\GDAL\gdal-data"
+        cmd='ogr2ogr -f "ESRI shapefile" %s %s" %s -sql "%s" '%(fichierShape, connexion, reprojection, requeteSql)
+        commande=redirection_gdaldata+" && "+cmd
+        print(f"debut export fichier {fichierShape} \n a {datetime.now().time().isoformat(timespec='seconds')} \n avec commande {cmd}")
+        subprocess.call(commande,shell=True)
+        print('Fait')     
 
 class Ogr2Ogr(object):
     '''
@@ -36,11 +55,12 @@ class Ogr2Ogr(object):
         subprocess.call(self.commande,shell=True)
     
     def shp2pg(self,connexionOgr,fichier,schema='public', table='tmp_import_shp',SRID='2154',geotype='MULTILINESTRING', dims=3, creationMode='',encodageClient='UTF-8', requeteSql=''):
-        """fonction d'import d'un shape dans postgres avec paramÃ¨tres
-        en entree : connexionOgr issue de ConnexionBdd.connstringOgr
-                    fichier est bien si c'est un raw string (r'texte')
-                    le SRID demandÃ© permet d'assigner un srid dans la base mais ne reprojete pas les donnÃ©es
-        """
+        '''
+        fonction d'import d'un shape dans postgres avec parametres
+        en entree  
+        connexionOgr issue de ConnexionBdd.connstringOgr
+        fichier est bien si c'est un raw string (r'texte')
+        '''
         connexion=connexionOgr.replace(' ','\"',1)
         cmd='ogr2ogr %s -f "postgreSQL" --config PG_USE_COPY YES -a_srs "EPSG:%s"  -nlt %s -dim %s -lco "SCHEMA=%s" %s\" %s -nln %s.%s %s' %(creationMode,SRID,geotype,dims,schema,connexion, fichier,schema,table,requeteSql)
         encodage='SET PGCLIENTENCODING='+encodageClient
@@ -80,38 +100,52 @@ class Ogr2Ogr(object):
     
 
 class ConnexionBdd(object):
-    '''
-    Classe pour connexion Ã  une base de donnees postgres
-    entrÃ©e : 
-    typeBdd(string qui decrit le type de Bdd selon le fichier de connexions) 
-    schema(string) 
-    table(string)
-    '''
 
     def __init__(self,typeBdd, schema='public', table='tmp',parent=None):
         '''
         Constructeur
-        les identiiants de connexions sont générés automatiquement lors de la création de l'objet
+        les identiiants de connexions sont generes automatiquement lors de la creation de l'objet
         mais on peut les changer et les modif si besoin en entrant un nouveau typeBdd
         '''
         
-        #attributs Ã  partir des parametres
+        #attributs �  partir des parametres
         self.serveur, self.port, self.user, self.mdp, self.bdd = ouvrirFichierParametre(typeBdd)
-        self.creerConnexion()
+        self.creerConnexionString()
     
-    def creerConnexion(self):
+
+        
+    
+    def creerConnexionString(self):
         """
         "determination des connexions (Ogr, psycopg2) et des chaines permettant les connexions
         """
         self.connstringPsy="host=%s user=%s password=%s dbname=%s port=%s" %(self.serveur, self.user, self.mdp, self.bdd, self.port)
+        #self.connexionPsy=psycopg2.connect(self.connstringPsy)
+        #self.curs=self.connexionPsy.cursor()
+        self.connstringOgr="PG: host=%s dbname=%s user=%s password=%s port=%s" %(self.serveur,self.bdd,self.user,self.mdp,self.port)
+        #self.connexionOgr=ogr.Open(self.connstringOgr)
+        #self.connexionPsy=psycopg2.connect(self.connstringPsy)
+        #self.curs=self.connexionPsy.cursor()
+    
+    #Projet : pouvoir la connexion dans un with pour gerer les erreuret feremeture de connexion
+    
+    def creerConnexion(self):
         self.connexionPsy=psycopg2.connect(self.connstringPsy)
         self.curs=self.connexionPsy.cursor()
-        self.connstringOgr="PG: host=%s dbname=%s user=%s password=%s port=%s" %(self.serveur,self.bdd,self.user,self.mdp,self.port)
         self.connexionOgr=ogr.Open(self.connstringOgr)
+    
+    def __enter__(self):
+        self.creerConnexion()
+        return self
+    
+    def __exit__(self,exception_type, exception_value, traceback):
+        self.connexionOgr.Destroy() #fin de la connexion Ogr
+        self.connexionPsy.close() #fin d ela connexion Psy
+      
 
 class ConnexionSsh(paramiko.SSHClient):
     """
-    Classe de connexion Ã  un sftp ssh
+    Classe de connexion  un sftp ssh
     utilise le module paramiko
     en entree : 
     host (hote sans sftp:// ex :acoustique.cerema.fr )
@@ -136,7 +170,7 @@ class ConnexionSsh(paramiko.SSHClient):
         print(self.host, self.sftp)
     
         """
-        #dÃ©finir les chemins
+        #definir les chemins
         remote_path=r'/Projet_Reussir_2017_CBS/024/lineaire/'
         remote_file='lineaire_fer.shp'
         file_remote=remote_path+remote_file
