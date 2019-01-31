@@ -108,7 +108,7 @@ class ConnexionBdd(object):
         mais on peut les changer et les modif si besoin en entrant un nouveau typeBdd
         '''
         
-        #attributs �  partir des parametres
+        #attributs �  partir des parametres
         self.serveur, self.port, self.user, self.mdp, self.bdd = ouvrirFichierParametre(typeBdd)
         self.creerConnexionString()
     
@@ -130,7 +130,7 @@ class ConnexionBdd(object):
     #Projet : pouvoir la connexion dans un with pour gerer les erreuret feremeture de connexion
     
     def creerConnexion(self):
-        self.connexionPsy=psycopg2.connect(self.connstringPsy)
+        self.connexionPsy=psycopg2.connect(self.connstringPsy)#toto
         self.curs=self.connexionPsy.cursor()
         self.connexionOgr=ogr.Open(self.connstringOgr)
     
