@@ -63,12 +63,16 @@ def epurationNomRoute(nomRoute):
     return prefixe+suffixeTraite
 
 def angle_entre_2_ligne(point_commun, point_ligne1, point_ligne2):
-    
+    '''
+    Calcul d'angle entre 3 points
+    en entree : -> list ou tuple de coordonnees des 3 points
+    en sortie : -> angle float
+    '''
     #creer les vecteurs
     v0=np.array(point_ligne1) - np.array(point_commun)
     v1=np.array(point_ligne2) - np.array(point_commun)
     angle = np.math.atan2(np.linalg.det([v0,v1]),np.dot(v0,v1))
-    angle_degrees=np.degrees(angle)
-    return angle_degrees
+    angle_degres=np.degrees(angle) if np.degrees(angle) > 0 else abs(np.degrees(angle))
+    return angle_degres
     
     
