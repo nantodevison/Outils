@@ -8,6 +8,7 @@ Created on 26 oct. 2017
 import os
 import shutil
 import glob
+import numpy as np
 
 def CopierFichierDepuisArborescence(dossierEntree,dossierSortie):
     """ fonction de copie en masse des fichiers au sein d'une raborescence
@@ -60,5 +61,14 @@ def epurationNomRoute(nomRoute):
     suffixeTraite=suffixe[j:]
     print (nomRoute,i, prefixe, suffixe,j,suffixeTraite )
     return prefixe+suffixeTraite
+
+def angle_entre_2_ligne(point_commun, point_ligne1, point_ligne2):
+    
+    #creer les vecteurs
+    v0=np.array(point_ligne1) - np.array(point_commun)
+    v1=np.array(point_ligne2) - np.array(point_commun)
+    angle = np.math.atan2(np.linalg.det([v0,v1]),np.dot(v0,v1))
+    angle_degrees=np.degrees(angle)
+    return angle_degrees
     
     
