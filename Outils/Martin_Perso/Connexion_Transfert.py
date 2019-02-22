@@ -38,7 +38,23 @@ def Ogr2ogr_pg2shp(connexionStringOgr,fichierShape, requeteSql,reprojection=''):
         commande=redirection_gdaldata+" && "+cmd
         print(f"debut export fichier {fichierShape} \n a {datetime.now().time().isoformat(timespec='seconds')} \n avec commande {cmd}")
         subprocess.call(commande,shell=True)
-        print('Fait')     
+        print('Fait') 
+
+def ogr2ogr_shp2pg(connexionOgr,fichier,schema='public', table='tmp_import_shp',SRID='2154',geotype='MULTILINESTRING', dims=3, creationMode='',encodageClient='UTF-8', requeteSql=''): 
+        """"
+        fonction d'import d'un shape dans postgres avec parametres
+        en entree  
+        connexionOgr issue de ConnexionBdd.connstringOgr
+        fichier : raw string 
+        """
+        connexion=connexionOgr.replace(' ','\"',1)
+        cmd='ogr2ogr %s -f "postgreSQL" --config PG_USE_COPY YES -a_srs "EPSG:%s"  -nlt %s -dim %s -lco "SCHEMA=%s" -lco GEOMETRY_NAME=geom %s\" %s -nln %s.%s %s' %(creationMode,SRID,geotype,dims,schema,connexion, fichier,schema,table,requeteSql)
+        encodage='SET PGCLIENTENCODING='+encodageClient
+        redirection_gdaldata=r'cd C:\Program Files\GDAL\gdal-data' 
+        commande=redirection_gdaldata+" && "+encodage+" && "+cmd
+        print(f"debut import fichier {fichier} avec shape2pg à {datetime.now().time().isoformat(timespec='seconds')} \n avec commande {cmd}")
+        subprocess.call(commande,shell=True)
+        print('Fait')   
 
 class Ogr2Ogr(object):
     '''
@@ -117,15 +133,11 @@ class ConnexionBdd(object):
     
     def creerConnexionString(self):
         """
-        "determination des connexions (Ogr, psycopg2) et des chaines permettant les connexions
+        "determination des chaines permettant les connexions
         """
         self.connstringPsy="host=%s user=%s password=%s dbname=%s port=%s" %(self.serveur, self.user, self.mdp, self.bdd, self.port)
-        #self.connexionPsy=psycopg2.connect(self.connstringPsy)
-        #self.curs=self.connexionPsy.cursor()
         self.connstringOgr="PG: host=%s dbname=%s user=%s password=%s port=%s" %(self.serveur,self.bdd,self.user,self.mdp,self.port)
-        #self.connexionOgr=ogr.Open(self.connstringOgr)
-        #self.connexionPsy=psycopg2.connect(self.connstringPsy)
-        #self.curs=self.connexionPsy.cursor()
+
     
     #Projet : pouvoir la connexion dans un with pour gerer les erreuret feremeture de connexion
     
