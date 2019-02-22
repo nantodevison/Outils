@@ -70,41 +70,6 @@ class Ogr2Ogr(object):
         print (self.commande)
         subprocess.call(self.commande,shell=True)
     
-    def shp2pg(self,connexionOgr,fichier,schema='public', table='tmp_import_shp',SRID='2154',geotype='MULTILINESTRING', dims=3, creationMode='',encodageClient='UTF-8', requeteSql=''):
-        '''
-        fonction d'import d'un shape dans postgres avec parametres
-        en entree  
-        connexionOgr issue de ConnexionBdd.connstringOgr
-        fichier est bien si c'est un raw string (r'texte')
-        '''
-        connexion=connexionOgr.replace(' ','\"',1)
-        cmd='ogr2ogr %s -f "postgreSQL" --config PG_USE_COPY YES -a_srs "EPSG:%s"  -nlt %s -dim %s -lco "SCHEMA=%s" %s\" %s -nln %s.%s %s' %(creationMode,SRID,geotype,dims,schema,connexion, fichier,schema,table,requeteSql)
-        encodage='SET PGCLIENTENCODING='+encodageClient
-        redirection_gdaldata=r'cd C:\Program Files\GDAL\gdal-data' 
-        commande=redirection_gdaldata+" && "+encodage+" && "+cmd
-        print('debut import fichier '+fichier+' avec shape2pg')
-        print (commande)
-        subprocess.call(commande,shell=True)
-        print('Fait')  
-
-    def pg2shp(self,connexionOgr,fichierShape, requeteSql,reprojection=''):
-        """
-        fonction d'export de postgres vers du shape
-        en entree : 
-        connexionOgr : issu de la classe ConnexionBdd, attribut connstringOgr
-        fichierShape : nom complet du fichier shape
-        reprojection: entier decrivant l'epsg, exemple : 2154
-        requeteSql : un string decrivant la requete sql de selection des donnees a exporter
-        """
-        connexion=connexionOgr.replace(' ','\"',1)
-        reprojection='-t_srs EPSG:'+str(reprojection) if reprojection!='' else ''
-        redirection_gdaldata="cd C:\Program Files\GDAL\gdal-data"
-        cmd='ogr2ogr -f "ESRI shapefile" %s %s" %s -sql "%s" '%(fichierShape, connexion, reprojection, requeteSql)
-        commande=redirection_gdaldata+" && "+cmd
-        print('debut export fichier ',fichierShape,' avec pg2shape', cmd)
-        subprocess.call(commande,shell=True)
-        print('Fait')    
-    
     def Asc2xyz(self,fichierAsc,epsg=2154):
         """Fonction de conversion d'un fichier .asc en .xyz"""
         fichierXyz=fichierAsc[:-3]+'xyz'
