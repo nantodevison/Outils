@@ -3,5 +3,6 @@ lapi localhost 5432 postgres postgres lapi
 bruit localhost 5432 postgres postgres bruit
 local_otv localhost 5432 postgres postgres otv
 gti_otv 172.22.37.4 5432 postgres postgres otv
+gti_lapi 172.22.37.4 5432 postgres postgres lapi
 sftp_setra_gittadmin acoustique.cerema.fr 22 gittadmin bruitAcou00!
 station_gere 172.22.112.101 5432 postgres postgres Bdd_BAU
