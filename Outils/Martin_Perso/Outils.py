@@ -5,10 +5,12 @@ Created on 26 oct. 2017
 @author: martin.schoreisz
 '''
 
+import matplotlib #pour eviter pb rcParams
 import os
 import shutil
 import glob
 import numpy as np
+import pandas as pd
 
 def CopierFichierDepuisArborescence(dossierEntree,dossierSortie):
     """ fonction de copie en masse des fichiers au sein d'une raborescence
@@ -74,5 +76,19 @@ def angle_entre_2_ligne(point_commun, point_ligne1, point_ligne2):
     angle = np.math.atan2(np.linalg.det([v0,v1]),np.dot(v0,v1))
     angle_degres=np.degrees(angle) if np.degrees(angle) > 0 else abs(np.degrees(angle))
     return angle_degres
+
+def  random_dates(start, end, n=10): 
+    """
+    creer des dates aleatoires
+    en entree : start : string decrivant une date avec Y M D H M S
+                end : string decrivant une date avec Y M D H M S
+    en sortie : une date au format pandas
+    """
+    
+    start=pd.to_datetime(start)
+    end=pd.to_datetime(end)
+    start_u = start.value//10**9
+    end_u = end.value//10**9
+    return pd.to_datetime(np.random.randint(start_u, end_u, n), unit='s')
     
     
