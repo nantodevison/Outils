@@ -7,6 +7,7 @@ Created on 26 avr. 2017
 import sys
 from datetime import datetime
 from PyQt5.QtWidgets import QApplication
+from sqlalchemy import create_engine
 import subprocess
 import psycopg2
 from osgeo import ogr
@@ -92,16 +93,15 @@ class ConnexionBdd(object):
         #attributs �  partir des parametres
         self.serveur, self.port, self.user, self.mdp, self.bdd = ouvrirFichierParametre(typeBdd)
         self.creerConnexionString()
-    
 
-        
-    
     def creerConnexionString(self):
         """
-        "determination des chaines permettant les connexions
+        determination des chaines permettant les connexions pour Psycopg2 et Ogr
+        creation de l'engine de sqlalchemy
         """
         self.connstringPsy="host=%s user=%s password=%s dbname=%s port=%s" %(self.serveur, self.user, self.mdp, self.bdd, self.port)
         self.connstringOgr="PG: host=%s dbname=%s user=%s password=%s port=%s" %(self.serveur,self.bdd,self.user,self.mdp,self.port)
+        self.engine=create_engine(f'postgresql://{self.user}:{self.mdp}@{self.serveur}:{self.port}/{self.bdd}')
 
     
     #Projet : pouvoir la connexion dans un with pour gerer les erreuret feremeture de connexion
@@ -110,6 +110,7 @@ class ConnexionBdd(object):
         self.connexionPsy=psycopg2.connect(self.connstringPsy)#toto
         self.curs=self.connexionPsy.cursor()
         self.connexionOgr=ogr.Open(self.connstringOgr)
+        self.sqlAlchemyConn=self.engine.connect()
     
     def __enter__(self):
         self.creerConnexion()
@@ -118,6 +119,8 @@ class ConnexionBdd(object):
     def __exit__(self,exception_type, exception_value, traceback):
         self.connexionOgr.Destroy() #fin de la connexion Ogr
         self.connexionPsy.close() #fin d ela connexion Psy
+        self.sqlAlchemyConn.close()#fin conn sqlAlchemy
+        self.engine.dispose()#fermer l'engine sql alchemy
       
 
 class ConnexionSsh(paramiko.SSHClient):
