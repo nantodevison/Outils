@@ -103,24 +103,19 @@ class ConnexionBdd(object):
         self.connstringOgr="PG: host=%s dbname=%s user=%s password=%s port=%s" %(self.serveur,self.bdd,self.user,self.mdp,self.port)
         self.engine=create_engine(f'postgresql://{self.user}:{self.mdp}@{self.serveur}:{self.port}/{self.bdd}')
 
-    
-    #Projet : pouvoir la connexion dans un with pour gerer les erreuret feremeture de connexion
-    
-    def creerConnexion(self):
+    def __enter__(self):
         self.connexionPsy=psycopg2.connect(self.connstringPsy)#toto
         self.curs=self.connexionPsy.cursor()
         self.connexionOgr=ogr.Open(self.connstringOgr)
         self.sqlAlchemyConn=self.engine.connect()
-    
-    def __enter__(self):
-        self.creerConnexion()
         return self
     
-    def __exit__(self,exception_type, exception_value, traceback):
+    def __exit__(self,*args):
         self.connexionOgr.Destroy() #fin de la connexion Ogr
         self.connexionPsy.close() #fin d ela connexion Psy
         self.sqlAlchemyConn.close()#fin conn sqlAlchemy
         self.engine.dispose()#fermer l'engine sql alchemy
+        return False
       
 
 class ConnexionSsh(paramiko.SSHClient):
