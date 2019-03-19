@@ -61,7 +61,6 @@ def epurationNomRoute(nomRoute):
     while suffixe[j]=='0': #determine le nombre de 0 non significatif
         j+=1
     suffixeTraite=suffixe[j:]
-    print (nomRoute,i, prefixe, suffixe,j,suffixeTraite )
     return prefixe+suffixeTraite
 
 def angle_entre_2_ligne(point_commun, point_ligne1, point_ligne2):
