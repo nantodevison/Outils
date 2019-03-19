@@ -16,7 +16,7 @@ from stat import S_ISDIR
 
 #fonction d'ouverture du fichier de parametres
 def ouvrirFichierParametre(typeParametres):
-    with open(r'C:\Users\martin\git\Outils\Outils\Martin_Perso\Id_connexions','r') as f_id :
+    with open(r'C:\Users\martin.schoreisz\git\Outils\Outils\Martin_Perso\Id_connexions','r') as f_id :
         dicoParametres={}
         for texte in f_id :
             ligne=texte.strip().split(' ')
