@@ -16,7 +16,7 @@ from stat import S_ISDIR
 
 #fonction d'ouverture du fichier de parametres
 def ouvrirFichierParametre(typeParametres):
-    with open(r'C:\Users\martin\git\Outils\Outils\Martin_Perso\Id_connexions','r') as f_id :
+    with open(r'C:\Users\martin.schoreisz\git\Outils\Outils\Martin_Perso\Id_connexions','r') as f_id :
         dicoParametres={}
         for texte in f_id :
             ligne=texte.strip().split(' ')
@@ -41,14 +41,14 @@ def Ogr2ogr_pg2shp(connexionStringOgr,fichierShape, requeteSql,reprojection=''):
         subprocess.call(commande,shell=True)
         print('Fait') 
 
-def ogr2ogr_shp2pg(connexionOgr,fichier,schema='public', table='tmp_import_shp',SRID='2154',geotype='MULTILINESTRING', dims=3, creationMode='',encodageClient='UTF-8', requeteSql=''): 
+def ogr2ogr_shp2pg(connstringOgr,fichier,schema='public', table='tmp_import_shp',SRID='2154',geotype='MULTILINESTRING', dims=3, creationMode='',encodageClient='UTF-8', requeteSql=''): 
         """"
         fonction d'import d'un shape dans postgres avec parametres
         en entree  
         connexionOgr issue de ConnexionBdd.connstringOgr
         fichier : raw string 
         """
-        connexion=connexionOgr.replace(' ','\"',1)
+        connexion=connstringOgr.replace(' ','\"',1)
         cmd='ogr2ogr %s -f "postgreSQL" --config PG_USE_COPY YES -a_srs "EPSG:%s"  -nlt %s -dim %s -lco "SCHEMA=%s" -lco GEOMETRY_NAME=geom %s\" %s -nln %s.%s %s' %(creationMode,SRID,geotype,dims,schema,connexion, fichier,schema,table,requeteSql)
         encodage='SET PGCLIENTENCODING='+encodageClient
         redirection_gdaldata=r'cd C:\Program Files\GDAL\gdal-data' 

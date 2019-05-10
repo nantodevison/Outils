@@ -5,5 +5,6 @@ local_otv localhost 5432 postgres postgres otv
 local_histo_position_google localhost 5432 postgres postgres histo_position_google
 gti_otv 172.22.37.4 5432 postgres postgres otv
 gti_lapi 172.22.37.4 5432 postgres postgre lapi
+gti_lapi_final 172.22.37.4 5432 postgres postgre lapi_final
 sftp_setra_gittadmin acoustique.cerema.fr 22 gittadmin bruitAcou00!
 station_gere 172.22.112.101 5432 postgres postgres Bdd_BAU
