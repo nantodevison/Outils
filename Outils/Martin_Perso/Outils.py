@@ -13,9 +13,8 @@ import numpy as np
 import pandas as pd
 import geopandas as gp
 import Connexion_Transfert as ct
-from shapely.geometry import LineString, MultiLineString
-from shapely.ops import nearest_points
-from sqlalchemy import Table, Column, Integer, String, Float,MetaData
+from collections import Counter
+from shapely.geometry import LineString
 from geoalchemy2 import Geometry, WKTElement
 
 def CopierFichierDepuisArborescence(dossierEntree,dossierSortie):
@@ -143,7 +142,7 @@ def creer_graph(gdf, bdd,id_name='id', schema='public', table='graph_temp', tabl
         c.curs.execute(rqt_anlyse_graph)#je le fait avec psycopg2 car avec sql acchemy ça ne passe pas
         c.connexionPsy.commit()
 
-def plus_proche_voisin(df_src, df_comp, dist_recherche, id_df_src, id_df_comp):
+def plus_proche_voisin(df_src, df_comp, dist_recherche, id_df_src, id_df_comp, same=False):
     """
     trouver l'objet le plus proche dans un rayon donné
     en entree : 
@@ -152,6 +151,7 @@ def plus_proche_voisin(df_src, df_comp, dist_recherche, id_df_src, id_df_comp):
         dist_recherche : int : le rayon de recherche en mètre
         id_df_src : string : nom du champs identifiant à transférer
         id_df_comp : string : nom du champs identifiant à transférer
+        same : boleen : si la mm df est entree 2 fois en entree
     """
     
     df_src_temp, df_comp_temp=df_src.copy(), df_comp.copy() #copie pour ne pas modifier la df source
@@ -168,6 +168,8 @@ def plus_proche_voisin(df_src, df_comp, dist_recherche, id_df_src, id_df_comp):
         if geom_src_nom==geom_comp_nom : #si les noms de geometries sont les memes des suffixes sont ajoutes
             geom_src_nom,geom_comp_nom=geom_src_nom+'_x',geom_comp_nom+'_y'
         intersct_buff['dist_pt_ligne']=intersct_buff.apply(lambda x : x[geom_src_nom].distance(x[geom_comp_nom]), axis=1) #définir la disance entre les df
+        if same : 
+            intersct_buff=intersct_buff.loc[intersct_buff[id_src]!=intersct_buff[id_comp]]
         joint_dist_min=intersct_buff.loc[intersct_buff.groupby(id_src)['dist_pt_ligne'].transform(min)==intersct_buff
                                          ['dist_pt_ligne']][[id_src,id_comp]].copy()
     else : 
@@ -180,5 +182,47 @@ def plus_proche_voisin(df_src, df_comp, dist_recherche, id_df_src, id_df_comp):
         
     return joint_dist_min
     
-    
+def nb_noeud_unique_troncon_continu(df, idtroncon,nom_idtroncon):
+    """
+    compter le nombre de noeud unique (i.e en bout de troncon) d'un troncon qui ne s'interrompt pas
+    in : 
+        df : dataframe de ligne, doit contenir les attributs 'source', 'target' et un attribut d'identifiant de troncon
+        idtroncon : identifiant du troncon
+        nom_idtroncon : string : nom de l'attribut d'identifaint de tranocn
+    out : 
+        list_noeud_uniq : list des noeuds vu une seule fois dans le troncon
+        list_noeud : list des noeuds du troncon
+    """
+    noeud_troncon=df.loc[df[nom_idtroncon]==idtroncon] # toute les lignes du troncon
+    #utilisation de Counter pour avoir le nb d'occurence'
+    list_noeud=[k for k in Counter(noeud_troncon.source.tolist()+noeud_troncon.target.tolist()).keys()]
+    list_noeud_uniq=tuple([k for k,v in Counter(noeud_troncon.source.tolist()+noeud_troncon.target.tolist()).items() if v==1]) 
+    return list_noeud_uniq,list_noeud
+
+def verif_index(df, nom_a_check, reset=True, nouveau_nom=None):
+    """
+    verifier le nom de l'index d'une datatframe et soit reseter l'index, soit changer le nom
+    in : 
+        df: la df a verifier
+        nom_a_check : string : le nom suposséede l'index
+        reset : boolen : reseter l'index ou non
+        nouveau_nom : le nouveau nom si renommage
+    """
+    if df.index.name==nom_a_check and reset : 
+        return df.reset_index()
+    else : 
+        return df
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
     
