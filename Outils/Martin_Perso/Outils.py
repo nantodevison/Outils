@@ -173,7 +173,7 @@ def plus_proche_voisin(df_src, df_comp, dist_recherche, id_df_src, id_df_comp, s
         joint_dist_min=intersct_buff.loc[intersct_buff.groupby(id_src)['dist_pt_ligne'].transform(min)==intersct_buff
                                          ['dist_pt_ligne']][[id_src,id_comp]].copy()
     else : 
-        intersct_buff=intersct_buff.merge(df_comp_temp[[id_df_comp,'geometry']], left_on=id_df_comp, right_on=id_df_comp)
+        intersct_buff=intersct_buff.merge(df_comp_temp[[id_df_comp,geom_comp_nom]], left_on=id_df_comp, right_on=id_df_comp)
         if geom_src_nom==geom_comp_nom : #si les noms de geometries sont les memes des suffixes sont ajoutes
             geom_src_nom,geom_comp_nom=geom_src_nom+'_x',geom_comp_nom+'_y'
         intersct_buff['dist_pt_ligne']=intersct_buff.apply(lambda x : x[geom_src_nom].distance(x[geom_comp_nom]), axis=1)
@@ -212,8 +212,6 @@ def verif_index(df, nom_a_check, reset=True, nouveau_nom=None):
         return df.reset_index()
     else : 
         return df
-
-        
         
         
         

@@ -23,16 +23,16 @@ def ouvrirFichierParametre(typeParametres):
             dicoParametres[ligne[0]]=ligne[1:]
         return (dicoParametres[typeParametres])
  
-def Ogr2ogr_pg2shp(connexionStringOgr,fichierShape, requeteSql,reprojection=''):
+def Ogr2ogr_pg2shp(connstringOgr,fichierShape, requeteSql,reprojection=''):
         """
         fonction d'export de postgres vers du shape
         en entree : 
-        connexionOgr : issu de la classe ConnexionBdd, attribut connstringOgr
+        connstringOgr : issu de la classe ConnexionBdd, attribut connstringOgr
         fichierShape : nom complet du fichier shape
         reprojection: entier decrivant l'epsg, exemple : 2154
         requeteSql : un string decrivant la requete sql de selection des donnees a exporter
         """
-        connexion=connexionStringOgr.replace(' ','\"',1)
+        connexion=connstringOgr.replace(' ','\"',1)
         reprojection='-t_srs EPSG:'+str(reprojection) if reprojection!='' else ''
         redirection_gdaldata="cd C:\Program Files\GDAL\gdal-data"
         cmd='ogr2ogr -f "ESRI shapefile" %s %s" %s -sql "%s" '%(fichierShape, connexion, reprojection, requeteSql)
