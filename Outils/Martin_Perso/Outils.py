@@ -14,6 +14,7 @@ import pandas as pd
 import geopandas as gp
 import Connexion_Transfert as ct
 from collections import Counter
+from datetime import datetime
 from shapely.geometry import LineString
 from geoalchemy2 import Geometry, WKTElement
 
@@ -98,7 +99,8 @@ def  random_dates(start, end, n=10):
 def creer_graph(gdf, bdd,id_name='id', schema='public', table='graph_temp', table_vertex='graph_temp_vertices_pgr'):
     """
     creer un graph a partir d'une geodataframe en utilisant les ofnctions de postgis.
-    attention, pas de return, la table reste dans postgis
+    attention, pas de return, la table reste dans postgis.
+    attention aussi si les lignes en entree sont des multilignes : seule la 1ere composante estconservee
     en entree : 
         gdf : geodataframe de geopandas 
         bdd : string, bdd postgis utilisee pour faire le graph
@@ -113,8 +115,9 @@ def creer_graph(gdf, bdd,id_name='id', schema='public', table='graph_temp', tabl
         raise TypeError('l''id doit etre converti en entier')
     #trouver le nom de la geom
     geom_name=gdf_w.geometry.name
-    #passer les donnees en 2D
-    gdf_w[geom_name]=gdf_w.geometry.apply(lambda x : LineString([xy[0:2] for xy in list(x.coords)]))
+    #passer les donnees en 2D et en linestring si Multi
+    gdf_w[geom_name]=gdf_w.geometry.apply(lambda x : LineString([xy[0:2] for xy in list(x[0].coords)]) if x.geom_type=='MultiLineString' else 
+                                                      LineString([xy[0:2] for xy in list(x.coords)]))
     #type de geom ets rid
     geo_type=gdf_w.geometry.geom_type.unique()[0].upper()
     geo_srid=int([a for a in gdf_w.geometry.crs.values()][0].split(':')[1])
@@ -124,12 +127,18 @@ def creer_graph(gdf, bdd,id_name='id', schema='public', table='graph_temp', tabl
         #supprimer table si elle existe
         rqt=f"drop table if exists {schema}.{table} ; drop table if exists {schema}.{table_vertex} "
         c.sqlAlchemyConn.execute(rqt)
+        print(f'creer_graph : donnees mise en forme, connexion ouverte ; {datetime.now()}')
         #passer les donnees
-        gdf_w.to_sql(table,c.sqlAlchemyConn,schema=schema,if_exists='append', index=False,
+        gdf_w.to_sql(table,c.sqlAlchemyConn,schema=schema, index=False,
                    dtype={geom_name:Geometry(geo_type, srid=geo_srid)})
-        c.sqlAlchemyConn.execute(f"""alter table {schema}.{table} rename column {geom_name}  to geom ;
+        print(f'creer_graph : donnees transferees dans la base postgis ; {datetime.now()}')
+        rqt_modif_geom=f"""alter table {schema}.{table} rename column {geom_name}  to geom ;
                                     alter table {schema}.{table} alter column geom type geometry(MULTILINESTRING,{geo_srid})
-                                    using st_Multi(geom)""")
+                                    using st_Multi(geom)""" if geom_name!='geom' else f"""
+                                    alter table {schema}.{table} alter column geom type geometry(MULTILINESTRING,{geo_srid})
+                                    using st_Multi(geom)"""
+        c.sqlAlchemyConn.execute(rqt_modif_geom)
+        print(f'creer_graph : geometrie modifiee ; {datetime.now()}')
         #creer le graph : soit source et target existent deja et on les remets a null, soit on les crees
         if all([a in gdf_w.columns for a in ['source', 'target']]) :
             rqt_creation_graph=f"""update {schema}.{table} set source=null, target=null ; 
@@ -138,9 +147,64 @@ def creer_graph(gdf, bdd,id_name='id', schema='public', table='graph_temp', tabl
             rqt_creation_graph=f"""alter table {schema}.{table} add column source int, add column target int ; 
                              select pgr_createTopology('{schema}.{table}', 0.001,'geom','{id_name}')"""
         c.sqlAlchemyConn.execute(rqt_creation_graph)
+        print(f'creer_graph : topologie cree ; {datetime.now()}')
         rqt_anlyse_graph=f"SELECT pgr_analyzeGraph('{schema}.{table}', 0.001,'geom','{id_name}')"
         c.curs.execute(rqt_anlyse_graph)#je le fait avec psycopg2 car avec sql acchemy ça ne passe pas
+        print(f'creer_graph : graph cree ; {datetime.now()}')
         c.connexionPsy.commit()
+
+def epurer_graph_trouver_lignes_vertex(vertex, lignes):
+    """
+    trouver les lignes et vertex des voies de categories 5 qui intersectent que des voies de categoriie 3 ou plus. prealable a la
+    fonction epurer_graph().
+    in : 
+        vertex : df des vertex issu de analyze graph. doit contenir les attributs cnt
+        lignes : gdf des lignes issue de createtopoology. doit contenir les attribut id_ign, source, target, importance
+    out : 
+        lignes_filtrees : gdf issue de lignes filtrees des lignes a suppr
+        liste_ligne_filtre : liste des id_ign a enlever
+        liste_vertex_filtre : liste des vertex a enlever
+    """
+    
+    def filtrer_noeud(tuple_importance,tuple_ign):
+        dico_counter=Counter(tuple_importance)
+        if (len(tuple_importance) >= 3 and '5' in dico_counter.keys() and (len(tuple_importance)-dico_counter['5']) >=2
+            and all([a not in tuple_importance for a in ['NC','4']])): #il y a au moins 2 lignes il y a une ligne 5, et au moins 2 autres lignes et que ces autres lignes ne sont pas NC ou 4  
+                    return tuple([tuple_ign[l]for l in[i for i, j in enumerate(tuple_importance) if j=='5']])
+        else : return False
+    
+    #isoler les noeud qui supportent plus de 2 lignes
+    vertx_sup3=vertex.loc[vertex['cnt']>2].copy()
+    #joindre avec les données de ligne
+    vertx_importance=pd.concat([vertx_sup3.merge(lignes[['id_ign','source','importance']].rename(columns={'source':'id'}),on='id'),
+     vertx_sup3.merge(lignes[['id_ign','target','importance']].rename(columns={'target':'id'}),on='id')],axis=0, sort=False).drop('the_geom',axis=1)
+    #regrouper par id et avoir un tuple des importances
+    vertx_importance_grp=vertx_importance.groupby('id').agg({'id_ign' : lambda x : tuple(x),'importance' : lambda x : tuple(x)})
+    vertx_importance_grp['supprimable']=vertx_importance_grp.apply(lambda x : filtrer_noeud(x['importance'],x['id_ign']),axis=1)
+    #filtrer la source
+    liste_ligne_filtre=[b for a in vertx_importance_grp.loc[vertx_importance_grp['supprimable']!=False].supprimable.tolist() for b in a]
+    liste_vertex_filtre=[a for a in vertx_importance_grp.loc[vertx_importance_grp['supprimable']!=False].index.tolist()]
+    lignes_filtrees=lignes.loc[~lignes['id_ign'].isin(liste_ligne_filtre)].copy()
+    return lignes_filtrees, liste_ligne_filtre, liste_vertex_filtre
+    
+def epurer_graph(bdd,id_name, schema, table, table_vertex):
+    """
+    enlever d'un graph en bdd les voies de catégorie 5 qui intersectent des voies de catégorie 3 ou plus
+    attention, cela modifie les tables directement dans postgis.
+    attention mm pb pour multilignes que dans creer_graph()
+    en entree : 
+        bdd : string, bdd postgis utilisee pour faire le graph
+        id_name : string : nom de la colonne contenant l'id_uniq
+        schema : string, nom du schema ou stocke le graph teporaire dans postgis
+        table : string, nom dde la table ou stocke le graph teporaire dans postgis
+        table_vertex : string, nom de l table des vertex ou stocke le graph teporaire dans postgis
+    """
+    with ct.ConnexionBdd('gti_otv_pg11') as c:
+        vertex=pd.read_sql(f'select * from {schema}.{table_vertex}',c.sqlAlchemyConn)
+        lignes=gp.GeoDataFrame.from_postgis(f'select * from {schema}.{table}',c.sqlAlchemyConn,geom_col='geom',crs={'init': 'epsg:2154'})
+    lignes_filtrees=epurer_graph_trouver_lignes_vertex(vertex, lignes)[0]
+    #la repasser dans la table postgis
+    creer_graph(lignes_filtrees,bdd,id_name,schema, table, table_vertex)
 
 def plus_proche_voisin(df_src, df_comp, dist_recherche, id_df_src, id_df_comp, same=False):
     """
