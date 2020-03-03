@@ -17,6 +17,8 @@ from collections import Counter
 from datetime import datetime
 from shapely.geometry import LineString
 from geoalchemy2 import Geometry, WKTElement
+from sqlalchemy.schema import MetaData
+from sqlalchemy import inspect
 
 def CopierFichierDepuisArborescence(dossierEntree,dossierSortie):
     """ fonction de copie en masse des fichiers au sein d'une raborescence
@@ -199,7 +201,7 @@ def epurer_graph(bdd,id_name, schema, table, table_vertex):
         table : string, nom dde la table ou stocke le graph teporaire dans postgis
         table_vertex : string, nom de l table des vertex ou stocke le graph teporaire dans postgis
     """
-    with ct.ConnexionBdd('gti_otv_pg11') as c:
+    with ct.ConnexionBdd(bdd) as c:
         vertex=pd.read_sql(f'select * from {schema}.{table_vertex}',c.sqlAlchemyConn)
         lignes=gp.GeoDataFrame.from_postgis(f'select * from {schema}.{table}',c.sqlAlchemyConn,geom_col='geom',crs={'init': 'epsg:2154'})
     lignes_filtrees=epurer_graph_trouver_lignes_vertex(vertex, lignes)[0]
@@ -276,7 +278,30 @@ def verif_index(df, nom_a_check, reset=True, nouveau_nom=None):
         return df.reset_index()
     else : 
         return df
-        
+
+def check_colonne_in_table_bdd(bdd, schema_r, table_r,*colonnes) : 
+    """
+    verifier qu'une table d'une bdd contient les colonnes ciblees
+    in : 
+       bdd : string : descriptions de la bdd, cf modules id_connexion
+       schema_r : string : le nom du schema supportant la table
+       table_r : le nom de la table
+       colonnes : le nom des colonnes devant etre dans la table, separe par une virgule
+    out : 
+        flag : booleen : true si toute les colonnes sont das la table, False sinon
+        list_colonne_manquante : lisrte des colonnes qui manque
+    """
+    with ct.ConnexionBdd(bdd) as c : 
+        m=MetaData(bind=c.engine,schema=schema_r)
+        m.reflect()
+        inspector=inspect(c.engine)
+    for t in m.tables.keys() : 
+        if t==f'{schema_r}.{table_r}' : 
+            columns=[c['name'] for c in inspector.get_columns(table_r, schema=schema_r)]
+    if all([e in columns for e in colonnes]) : 
+        return True,[]
+    else : 
+        return False,[e for e in colonnes if e not in columns]        
         
         
         
