@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import QApplication
 from sqlalchemy import create_engine
 import subprocess
 import psycopg2
+import pyodbc
 from osgeo import ogr
 import paramiko
 from stat import S_ISDIR
@@ -83,7 +84,7 @@ class Ogr2Ogr(object):
 
 class ConnexionBdd(object):
 
-    def __init__(self,typeBdd, schema='public', table='tmp',parent=None):
+    def __init__(self,typeBdd, schema='public', table='tmp',parent=None, fichierMdb=None):
         '''
         Constructeur
         les identiiants de connexions sont generes automatiquement lors de la creation de l'objet
@@ -91,7 +92,15 @@ class ConnexionBdd(object):
         '''
         
         #attributs �  partir des parametres
-        self.serveur, self.port, self.user, self.mdp, self.bdd = ouvrirFichierParametre(typeBdd)
+        self.typeBdd=typeBdd
+        self.fichierMdb=fichierMdb
+        if self.typeBdd=='mdb' : # dans le cas d'un fichier mdb il faut s'assurer que le driver est là
+            if not [x for x in pyodbc.drivers() if x.startswith('Microsoft Access Driver')] : 
+                raise self.DriverMdbError() 
+            if not fichierMdb : 
+                raise self.FichierMdbError()
+        else : 
+            self.serveur, self.port, self.user, self.mdp, self.bdd = ouvrirFichierParametre(self.typeBdd)
         self.creerConnexionString()
 
     def creerConnexionString(self):
@@ -99,23 +108,47 @@ class ConnexionBdd(object):
         determination des chaines permettant les connexions pour Psycopg2 et Ogr
         creation de l'engine de sqlalchemy
         """
-        self.connstringPsy="host=%s user=%s password=%s dbname=%s port=%s" %(self.serveur, self.user, self.mdp, self.bdd, self.port)
-        self.connstringOgr="PG: host=%s dbname=%s user=%s password=%s port=%s" %(self.serveur,self.bdd,self.user,self.mdp,self.port)
-        self.engine=create_engine(f'postgresql://{self.user}:{self.mdp}@{self.serveur}:{self.port}/{self.bdd}')
+        if self.typeBdd=='mdb' : 
+            self.connstringMdb = r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};' + f'DBQ={self.fichierMdb};'
+        else : 
+            self.connstringPsy="host=%s user=%s password=%s dbname=%s port=%s" %(self.serveur, self.user, self.mdp, self.bdd, self.port)
+            self.connstringOgr="PG: host=%s dbname=%s user=%s password=%s port=%s" %(self.serveur,self.bdd,self.user,self.mdp,self.port)
+            self.engine=create_engine(f'postgresql://{self.user}:{self.mdp}@{self.serveur}:{self.port}/{self.bdd}') 
 
     def __enter__(self):
-        self.connexionPsy=psycopg2.connect(self.connstringPsy)#toto
-        self.curs=self.connexionPsy.cursor()
-        self.connexionOgr=ogr.Open(self.connstringOgr)
-        self.sqlAlchemyConn=self.engine.connect()
+        if self.typeBdd=='mdb' :
+            self.connexionMdb = pyodbc.connect(self.connstringMdb)
+            self.mdbCurs = self.connexionMdb.cursor()
+        else :
+            self.connexionPsy=psycopg2.connect(self.connstringPsy)#toto
+            self.curs=self.connexionPsy.cursor()
+            self.connexionOgr=ogr.Open(self.connstringOgr)
+            self.sqlAlchemyConn=self.engine.connect()
         return self
     
     def __exit__(self,*args):
-        self.connexionOgr.Destroy() #fin de la connexion Ogr
-        self.connexionPsy.close() #fin d ela connexion Psy
-        self.sqlAlchemyConn.close()#fin conn sqlAlchemy
-        self.engine.dispose()#fermer l'engine sql alchemy
+        if self.typeBdd=='mdb' :
+            self.connexionMdb.close()#fermer la connexion au mdb
+        else : 
+            self.connexionOgr.Destroy() #fin de la connexion Ogr
+            self.connexionPsy.close() #fin d ela connexion Psy
+            self.sqlAlchemyConn.close()#fin conn sqlAlchemy
+            self.engine.dispose()#fermer l'engine sql alchemy
         return False
+    
+    class DriverMdbError(Exception):
+        """
+        Exception levee il manque le driver mdb, i.e il n'y a pas de Microsoft office sur le PC
+        """     
+        def __init__(self):
+            Exception.__init__(self,'il manque le drivers mdb, cf https://github.com/mkleehammer/pyodbc/wiki/Connecting-to-Microsoft-Access ')
+    
+    class FichierMdbError(Exception):
+        """
+        Exception levee il manque le fichier mdb, ou si il y a un pb avec son chemi ou ses donnees
+        """     
+        def __init__(self):
+            Exception.__init__(self,'pb avec le fichier mdb, son nom (accent, underscire, caracteres speciaux...), son chemin (doit etre complet en raw string) ou ses donnees')
       
 
 class ConnexionSsh(paramiko.SSHClient):
