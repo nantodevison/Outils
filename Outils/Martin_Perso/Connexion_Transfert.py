@@ -56,7 +56,20 @@ def ogr2ogr_shp2pg(connstringOgr,fichier,schema='public', table='tmp_import_shp'
         commande=redirection_gdaldata+" && "+encodage+" && "+cmd
         print(f"debut import fichier {fichier} avec shape2pg à {datetime.now().time().isoformat(timespec='seconds')} \n avec commande {cmd}")
         subprocess.call(commande,shell=True)
-        print('Fait')   
+        print('Fait') 
+
+def ogr2ogr_csv2pg(connstringOgr, fichier,schema='public', table='tmp_import_shp',encodageClient='UTF-8'):
+        connexion=connstringOgr.replace(' ','\"',1)
+        cmd=f'ogr2ogr -f "postgreSQL" --config PG_USE_COPY YES -lco "SCHEMA={schema}" {connexion}\" {fichier} -nln {schema}.{table}'
+        encodage='SET PGCLIENTENCODING='+encodageClient
+        redirection_gdaldata=r'cd C:\Program Files\GDAL\gdal-data' 
+        commande=redirection_gdaldata+" && "+encodage+" && "+cmd
+        print(f"debut import fichier {fichier} avec shape2pg à {datetime.now().time().isoformat(timespec='seconds')} \n avec commande {cmd}")
+        subprocess.call(commande,shell=True)
+        print('Fait') 
+        
+        
+        
 
 class Ogr2Ogr(object):
     '''
