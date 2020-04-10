@@ -303,7 +303,28 @@ def check_colonne_in_table_bdd(bdd, schema_r, table_r,*colonnes) :
     else : 
         return False,[e for e in colonnes if e not in columns]        
         
-        
+def getIndexes(dfObj, value):
+    ''' Get index positions of value in dataframe i.e. dfObj.'''
+    listOfPos = list()
+    # Get bool dataframe with True at positions where the given value exists
+    result = dfObj.isin([value])
+    # Get list of columns that contains the value
+    seriesObj = result.any()
+    columnNames = list(seriesObj[seriesObj == True].index)
+    # Iterate over list of columns and fetch the rows indexes where value exists
+    for col in columnNames:
+        rows = list(result[col][result[col] == True].index)
+        for row in rows:
+            listOfPos.append((row, col))
+    # Return a list of tuples indicating the positions of value in the dataframe
+    return listOfPos   
+
+def gp_changer_nom_geom(gdf, new_name):
+    """
+    changer le nom de la colonne geometrie dans une geodataframe
+    """
+    gdf=gdf.rename(columns={gdf.geometry.name : new_name}).set_geometry(new_name)
+    gdf.geom=gdf.apply(lambda x : WKTElement(x[new_name].wkt, srid=2154), axis=1)   
         
         
         

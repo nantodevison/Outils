@@ -58,9 +58,9 @@ def ogr2ogr_shp2pg(connstringOgr,fichier,schema='public', table='tmp_import_shp'
         subprocess.call(commande,shell=True)
         print('Fait') 
 
-def ogr2ogr_csv2pg(connstringOgr, fichier,schema='public', table='tmp_import_shp',encodageClient='UTF-8'):
+def ogr2ogr_csv2pg(connstringOgr, fichier,schema='public', table='tmp_import_shp',encodageClient='UTF-8', headers='YES'):
         connexion=connstringOgr.replace(' ','\"',1)
-        cmd=f'ogr2ogr -f "postgreSQL" --config PG_USE_COPY YES -lco "SCHEMA={schema}" {connexion}\" {fichier} -nln {schema}.{table}'
+        cmd=f'ogr2ogr -f "postgreSQL" --config PG_USE_COPY YES -lco "SCHEMA={schema}" {connexion}\" {fichier} -nln {schema}.{table} -oo HEADERS={headers}'
         encodage='SET PGCLIENTENCODING='+encodageClient
         redirection_gdaldata=r'cd C:\Program Files\GDAL\gdal-data' 
         commande=redirection_gdaldata+" && "+encodage+" && "+cmd
