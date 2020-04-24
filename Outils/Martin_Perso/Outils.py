@@ -319,12 +319,23 @@ def getIndexes(dfObj, value):
     # Return a list of tuples indicating the positions of value in the dataframe
     return listOfPos   
 
-def gp_changer_nom_geom(gdf, new_name):
+def gp_changer_nom_geom(gdf, new_name, srid=2154):
     """
     changer le nom de la colonne geometrie dans une geodataframe
     """
-    gdf=gdf.rename(columns={gdf.geometry.name : new_name}).set_geometry(new_name)
-    gdf.geom=gdf.apply(lambda x : WKTElement(x[new_name].wkt, srid=2154), axis=1)   
+    gdf_modif=gdf.rename(columns={gdf.geometry.name : new_name}).set_geometry(new_name)
+    return gdf_modif 
+
+def find_sublist(sub, bigger):
+    first, rest = sub[0], sub[1:]
+    pos = 0
+    try:
+        while True:
+            pos = bigger.index(first, pos) + 1
+            if not rest or bigger[pos:pos+len(rest)] == rest:
+                return pos
+    except ValueError:
+        return -1
         
         
         
