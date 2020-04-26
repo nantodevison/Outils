@@ -32,7 +32,7 @@ def CopierFichierDepuisArborescence(dossierEntree,dossierSortie):
             except :
                 pass
 
-def ListerFichierDossier(dossier,extension):
+def ListerFichierDossier(dossier,extension=''):
     """lister les fichier d'un dossier selon une extenssion
     en entrée : chemin du dossier avec le préfixe r ou les \ doublés en \\ 
     en entree : l'extension avec le '.'
