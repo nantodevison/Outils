@@ -48,6 +48,7 @@ def ogr2ogr_shp2pg(connstringOgr,fichier,schema='public', table='tmp_import_shp'
         en entree  
         connexionOgr issue de ConnexionBdd.connstringOgr
         fichier : raw string 
+        creationMode : rien pour créée une nouvelle table, -append -update pour ajouter a une existante (faut mettre les deux
         """
         connexion=connstringOgr.replace(' ','\"',1)
         cmd='ogr2ogr %s -f "postgreSQL" --config PG_USE_COPY YES -a_srs "EPSG:%s"  -nlt %s -dim %s -lco "SCHEMA=%s" -lco GEOMETRY_NAME=geom %s\" %s -nln %s.%s %s' %(creationMode,SRID,geotype,dims,schema,connexion, fichier,schema,table,requeteSql)
