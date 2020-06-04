@@ -16,12 +16,10 @@ def concat_df(creer_df) :
         for i in range(len(liste)) :
             if isinstance(liste[i],list) or isinstance(liste[i],tuple): #si 'c'est un des deux types alors on decompose la liste qui est une liste de liste (i.e liste de paramètres)
                 if i==0 :
-                    print(*liste[i])
                     tot=creer_df(*liste[i])
                 else :
                     tot=pd.concat([tot,creer_df(*liste[i])], axis=0,sort=False)
             else :
-                print(liste[i]) 
                 if i==0 :
                     tot=creer_df(liste[i])
                 else :
