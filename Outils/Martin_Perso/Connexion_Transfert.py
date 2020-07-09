@@ -68,9 +68,15 @@ def ogr2ogr_csv2pg(connstringOgr, fichier,schema='public', table='tmp_import_shp
         print(f"debut import fichier {fichier} avec shape2pg à {datetime.now().time().isoformat(timespec='seconds')} \n avec commande {cmd}")
         subprocess.call(commande,shell=True)
         print('Fait') 
-        
-        
-        
+    
+def ogr2ogr_pg2dbf(connstringOgr,fichierdbf, requeteSql):        
+        connexion=connstringOgr.replace(' ','\"',1)
+        redirection_gdaldata="cd C:\Program Files\GDAL\gdal-data"
+        cmd='ogr2ogr -f "ESRI shapefile" %s %s" -sql "%s" '%(fichierdbf, connexion, requeteSql)
+        commande=redirection_gdaldata+" && "+cmd
+        print(f"debut export fichier {fichierdbf} \n a {datetime.now().time().isoformat(timespec='seconds')} \n avec commande {cmd}")
+        subprocess.call(commande,shell=True)
+        print('Fait') 
 
 class Ogr2Ogr(object):
     '''
