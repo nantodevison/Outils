@@ -4,20 +4,17 @@ Created on 26 avr. 2017
 
 @author: Martin
 '''
-import sys
+
 from datetime import datetime
-from PyQt5.QtWidgets import QApplication
 from sqlalchemy import create_engine
 import subprocess
 import psycopg2
 import pyodbc
 from osgeo import ogr
-import paramiko
-from stat import S_ISDIR
 
 #fonction d'ouverture du fichier de parametres
 def ouvrirFichierParametre(typeParametres):
-    with open(r'C:\Users\martin.schoreisz\git\Outils\Outils\Martin_Perso\Id_connexions','r') as f_id :
+    with open(r'C:\Users\marti\git\Outils\Outils\Martin_Perso\Id_connexions','r') as f_id :
         dicoParametres={}
         for texte in f_id :
             ligne=texte.strip().split(' ')
@@ -171,59 +168,3 @@ class ConnexionBdd(object):
             Exception.__init__(self,'pb avec le fichier mdb, son nom (accent, underscire, caracteres speciaux...), son chemin (doit etre complet en raw string) ou ses donnees')
       
 
-class ConnexionSsh(paramiko.SSHClient):
-    """
-    Classe de connexion  un sftp ssh
-    utilise le module paramiko
-    en entree : 
-    host (hote sans sftp:// ex :acoustique.cerema.fr )
-    port (entier ex: 22)
-    username (string ex : gittadmin)
-    mdp (string ex : bruitAcou00!)
-    """
-    
-    def __init__(self, host='acoustique.cerema.fr', port=22, username='gittadmin', mdp='bruitAcou00!') :
-        """
-        constrcuteur
-        """
-        #self.ssh = paramiko.SSHClient()
-        super().__init__()
-        self.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        self.host=host
-        self.port=port
-        self.mdp=mdp
-        self.username=username
-        self.connect(self.host, self.port,  self.username, self.mdp)
-        self.sftp = self.open_sftp()
-        print(self.host, self.sftp)
-    
-        """
-        #definir les chemins
-        remote_path=r'/Projet_Reussir_2017_CBS/024/lineaire/'
-        remote_file='lineaire_fer.shp'
-        file_remote=remote_path+remote_file
-        file_local=r'E:\Boulot\python3\test\toto.shp'
-        self.sftp.get(file_remote, file_local)"""
-
-    
-    def sftp_walk(self,remotepath):
-        path=remotepath
-        files=[]
-        folders=[]
-        for f in self.sftp.listdir_attr(path):
-            if S_ISDIR(f.st_mode):
-                folders.append(f.filename)
-            else:
-                files.append(f.filename)
-        if files:
-            yield path, files
-        for folder in folders:
-            new_path=remotepath+'/'+folder
-            new_path=new_path.replace('//','/')
-            for x in self.sftp_walk(new_path):
-                yield x
-
-if __name__=='__main__':
-    app=QApplication(sys.argv)
-    toto=ConnexionBdd('Bdd_95_local')
-    print(toto.connstringPsy)

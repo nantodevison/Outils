@@ -16,7 +16,7 @@ import Connexion_Transfert as ct
 from collections import Counter
 from datetime import datetime
 from shapely.geometry import LineString
-from geoalchemy2 import Geometry, WKTElement
+from geoalchemy2.types import Geometry, WKTElement
 from sqlalchemy.schema import MetaData
 from sqlalchemy import inspect
 
