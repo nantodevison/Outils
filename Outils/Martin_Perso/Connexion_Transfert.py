@@ -12,9 +12,12 @@ import psycopg2
 import pyodbc
 from osgeo import ogr
 
+
+
+
 #fonction d'ouverture du fichier de parametres
 def ouvrirFichierParametre(typeParametres):
-    with open(r'C:\Users\marti\git\Outils\Outils\Martin_Perso\Id_connexions','r') as f_id :
+    with open(r'C:\Users\martin.schoreisz\git\Outils\Outils\Martin_Perso\Id_connexions','r') as f_id :
         dicoParametres={}
         for texte in f_id :
             ligne=texte.strip().split(' ')

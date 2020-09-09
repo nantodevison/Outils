@@ -9,6 +9,7 @@ import matplotlib #pour eviter pb rcParams
 import os
 import shutil
 import glob
+import pyproj
 import numpy as np
 import pandas as pd
 import geopandas as gp
@@ -16,9 +17,11 @@ import Connexion_Transfert as ct
 from collections import Counter
 from datetime import datetime
 from shapely.geometry import LineString
+from shapely.ops import transform
 from geoalchemy2.types import Geometry, WKTElement
 from sqlalchemy.schema import MetaData
 from sqlalchemy import inspect
+from sklearn.cluster import DBSCAN
 
 def CopierFichierDepuisArborescence(dossierEntree,dossierSortie):
     """ fonction de copie en masse des fichiers au sein d'une raborescence
@@ -191,7 +194,7 @@ def epurer_graph_trouver_lignes_vertex(vertex, lignes):
     
 def epurer_graph(bdd,id_name, schema, table, table_vertex):
     """
-    enlever d'un graph en bdd les voies de catégorie 5 qui intersectent des voies de catégorie 3 ou plus
+    enlever d'un graph en bdd les voies de catégorie 5 qui intersectent des voies de catégorie 4 ou plus
     attention, cela modifie les tables directement dans postgis.
     attention mm pb pour multilignes que dans creer_graph()
     en entree : 
@@ -247,7 +250,23 @@ def plus_proche_voisin(df_src, df_comp, dist_recherche, id_df_src, id_df_comp, s
                                          ['dist_pt_ligne']][[id_df_src,id_df_comp]].copy()
         
     return joint_dist_min
-    
+
+def cluster_spatial(gdf, distance):
+    """
+    ajouter un attribut 'n_cluster' de regourpement des objets d'une df selon une distance inter objet
+    necessite une gdf avec une géométrir selon un CRS en mètres
+    se base sur l'algorythme DBSCAN
+    in : 
+        gdf : geodataframe avec une geometrie en mètre
+        distance : integer : ecart max entre 2 objets regroupables
+    """
+    gdf['x_l93']=gdf.geometry.apply(lambda x : x.x)
+    gdf['y_l93']=gdf.geometry.apply(lambda x : x.y)
+    limMet_clust=[[x, y] for x, y in zip(gdf.x_l93.tolist(), gdf.y_l93.tolist())]
+    db = DBSCAN(eps=distance, min_samples=2).fit(limMet_clust)
+    labels = db.labels_
+    gdf['n_cluster']=labels
+
 def nb_noeud_unique_troncon_continu(df, idtroncon,nom_idtroncon):
     """
     compter le nombre de noeud unique (i.e en bout de troncon) d'un troncon qui ne s'interrompt pas
@@ -336,6 +355,21 @@ def find_sublist(sub, bigger):
                 return pos
     except ValueError:
         return -1
+    
+def reprojeter_shapely(geom, epsg_src, epsg_dest):
+    """
+    reprojeter une géométrie shapely, ou simplement préparer une transformation applicable à plusieurs geom si geom = None
+    in :     
+        geom: geom shapely
+        epsg_src : string : ex : '2154'
+        epsg_dest : string : ex : '4326'
+    """
+    src = pyproj.CRS(f'EPSG:{epsg_src}')
+    dest = pyproj.CRS(f'EPSG:{epsg_dest}')
+    project = pyproj.Transformer.from_crs(src, dest, always_xy=True).transform
+    if not geom : 
+        return project, None
+    return project, transform(project, geom)
         
         
         
