@@ -23,17 +23,27 @@ from sqlalchemy.schema import MetaData
 from sqlalchemy import inspect
 from sklearn.cluster import DBSCAN
 
-def CopierFichierDepuisArborescence(dossierEntree,dossierSortie):
+def CopierFichierDepuisArborescence(dossierEntree,dossierSortie, extension=None):
     """ fonction de copie en masse des fichiers au sein d'une raborescence
-    en entrée : un path avec le préfixe r ou les \ doublés en \\
+    in : 
+        dossierEntree : raw string du dossier à parcourir
+        dossierSortie : raw string du dossier destination
+        extension : string : extension avec le . pour ne copier que les fichier es types souhaites
     """
     for root, dir, files in os.walk(dossierEntree):  #
         for file in files:
             path_file = os.path.join(root,file)
-            try :
-                shutil.copy2(path_file,dossierSortie)
-            except :
-                pass
+            if extension : 
+                if file.lower().endswith(extension.lower()) : 
+                    try :
+                        shutil.copy2(path_file,dossierSortie)
+                    except :
+                        pass
+            else :
+                try :
+                    shutil.copy2(path_file,dossierSortie)
+                except :
+                    pass
 
 def ListerFichierDossier(dossier,extension=''):
     """lister les fichier d'un dossier selon une extenssion
