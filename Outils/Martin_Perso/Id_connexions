@@ -2,7 +2,7 @@ local localhost 5432 postgres postgres Bdd_BAU
 local_test localhost 5432 postgres postgres test
 lapi localhost 5432 postgres postgres lapi
 lapi_final localhost 5432 postgres postgres lapi_final
-bruit localhost 5432 postgres postgres bruit
+bruit localhost 5432 postgres postgres Bruit
 local_otv localhost 5432 postgres postgres otv
 local_otv_station_gti localhost 5432 postgres postgres statio_gti_otv
 local_histo_position_google localhost 5432 postgres postgres histo_position_google
