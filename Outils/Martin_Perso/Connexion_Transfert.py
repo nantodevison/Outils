@@ -7,10 +7,13 @@ Created on 26 avr. 2017
 
 from datetime import datetime
 from sqlalchemy import create_engine
-import subprocess
+import subprocess, os
 import psycopg2
 import pyodbc
 from osgeo import ogr
+import pandas as pd
+import geopandas as gp
+from shapely.geometry import Point
 
 
 
@@ -77,6 +80,37 @@ def ogr2ogr_pg2dbf(connstringOgr,fichierdbf, requeteSql):
         print(f"debut export fichier {fichierdbf} \n a {datetime.now().time().isoformat(timespec='seconds')} \n avec commande {cmd}")
         subprocess.call(commande,shell=True)
         print('Fait') 
+        
+def ogr2ogrAsc2xyz(fichierAsc,epsg=2154):
+        """Fonction de conversion d'un fichier .asc en .xyz"""
+        fichierXyz=fichierAsc[:-3]+'xyz'
+        redirection_gdaldata="cd C:\Program Files\GDAL\gdal-data"
+        commandeGdal='gdal_translate -of XYZ -a_srs EPSG:%s %s %s'%(epsg,fichierAsc,fichierXyz)
+        cmd= redirection_gdaldata+'&&'+ commandeGdal
+        subprocess.call(cmd,shell=True)
+        return fichierXyz
+    
+def ogr2ogrAsc2shp(fichierAsc,dossierSortie,opZonage,fichierZonage=None,epsg=2154):
+    """
+    Conversion d'un fichier asc en shp, par le biais de l'xyz,
+    in : 
+        fichierAsc : rawstring du chemin defichier complet
+        dossierSortie rawstrig du dossier de sortie
+        fichierZonage : rawstring d'un fichier shape de limitation des donnees
+        opZonage : string, operation defiltre,; cf doc geopandas
+    """
+    ogr2ogrAsc2xyz(fichierAsc,epsg=2154)
+    fichierXyz=pd.read_csv(fichierAsc[:-3]+'xyz', sep=' ',header=None, names=['x','y','z'])
+    os.remove(fichierAsc[:-3]+'xyz')
+    fichierXyz['geom']=fichierXyz.apply(lambda x : Point(x.x, x.y,x.z), axis=1)
+    gdf=gp.GeoDataFrame(fichierXyz, geometry='geom', crs=f"EPSG:{epsg}")
+    gdf=gdf.loc[gdf.geom.apply(lambda x : x.z!=-99999)]
+    if fichierZonage :
+        dfZonage=gp.read_file(fichierZonage)
+        gp.sjoin(gdf,dfZonage,how='inner',op=opZonage ).to_file(os.path.join(dossierSortie,os.path.split(fichierAsc)[1][:-3]+'shp'))
+    else : 
+        gdf.to_file(os.path.join(dossierSortie,os.path.split(fichierAsc)[1][:-3]+'shp'))
+    
 
 class Ogr2Ogr(object):
     '''
@@ -91,15 +125,6 @@ class Ogr2Ogr(object):
         self.commande=self.redirection+' && '+self.commandeRaster+' && '+self.commandePsql
         print (self.commande)
         subprocess.call(self.commande,shell=True)
-    
-    def Asc2xyz(self,fichierAsc,epsg=2154):
-        """Fonction de conversion d'un fichier .asc en .xyz"""
-        fichierXyz=fichierAsc[:-3]+'xyz'
-        redirection_gdaldata="cd C:\Program Files\GDAL\gdal-data"
-        commandeGdal='gdal_translate -of XYZ -a_srs EPSG:%s %s %s'%(epsg,fichierAsc,fichierXyz)
-        cmd= redirection_gdaldata+'&&'+ commandeGdal
-        subprocess.call(cmd,shell=True)
-        return fichierXyz
     
 
 class ConnexionBdd(object):
