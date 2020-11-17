@@ -3,7 +3,7 @@ lapi localhost 5432 postgres postgres lapi
 lapi_final localhost 5432 postgres postgres lapi_final
 bruit localhost 5432 postgres postgres Bruit
 local_otv localhost 5432 postgres postgres otv_perso
-local_otv_gti localhost 5432 postgres postgres otvgti
+local_otv_gti localhost 5432 postgres postgres otv_gti
 local_histo_position_google localhost 5432 postgres postgres histo_position_google
 gti_otv_pg11 172.22.37.4 5434 postgres postgres otv
 gti_lapi 172.22.37.4 5432 postgres postgre lapi
