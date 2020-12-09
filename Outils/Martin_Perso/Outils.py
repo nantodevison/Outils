@@ -22,6 +22,7 @@ from geoalchemy2.types import Geometry, WKTElement
 from sqlalchemy.schema import MetaData
 from sqlalchemy import inspect
 from sklearn.cluster import DBSCAN
+from builtins import isinstance
 
 def CopierFichierDepuisArborescence(dossierEntree,dossierSortie, extension=None):
     """ fonction de copie en masse des fichiers au sein d'une raborescence
@@ -128,6 +129,10 @@ def creer_graph(gdf, bdd,id_name='id', schema='public', table='graph_temp', tabl
     #verifier que l'identifiant est un entier
     if gdf[id_name].dtype!=np.int64 : 
         raise TypeError('l''id doit etre converti en entier')
+    #verifier qu'on a bien une geoDataFrame
+    if not isinstance(gdf_w,gp.GeoDataFrame) : 
+        raise TypeError('if faut convertir les donnees en GeoDataFrame')
+    
     #trouver le nom de la geom
     geom_name=gdf_w.geometry.name
     #passer les donnees en 2D et en linestring si Multi
@@ -135,7 +140,7 @@ def creer_graph(gdf, bdd,id_name='id', schema='public', table='graph_temp', tabl
                                                       LineString([xy[0:2] for xy in list(x.coords)]))
     #type de geom ets rid
     geo_type=gdf_w.geometry.geom_type.unique()[0].upper()
-    geo_srid=int([a for a in gdf_w.geometry.crs.values()][0].split(':')[1])
+    geo_srid=int(gdf_w.crs.to_string().split(':')[1])
     #passer la geom en texte pour export dans postgis
     gdf_w[geom_name] = gdf_w[geom_name].apply(lambda x: WKTElement(x.wkt, srid=geo_srid))
     with ct.ConnexionBdd(bdd) as c:
@@ -151,17 +156,21 @@ def creer_graph(gdf, bdd,id_name='id', schema='public', table='graph_temp', tabl
                                     alter table {schema}.{table} alter column geom type geometry(MULTILINESTRING,{geo_srid})
                                     using st_Multi(geom)""" if geom_name!='geom' else f"""
                                     alter table {schema}.{table} alter column geom type geometry(MULTILINESTRING,{geo_srid})
-                                    using st_Multi(geom)"""
+                                    using st_Multi(geom) ; """
+        rqt_modif_attr=f"""alter table {schema}.{table} alter column "source" TYPE int8 ; 
+                           alter table {schema}.{table} alter column "target" TYPE int8"""
         c.sqlAlchemyConn.execute(rqt_modif_geom)
+        c.sqlAlchemyConn.execute(rqt_modif_attr)
         print(f'creer_graph : geometrie modifiee ; {datetime.now()}')
         #creer le graph : soit source et target existent deja et on les remets a null, soit on les crees
         if all([a in gdf_w.columns for a in ['source', 'target']]) :
-            rqt_creation_graph=f"""update {schema}.{table} set source=null, target=null ; 
+            rqt_creation_graph=f"""update {schema}.{table} set source=null::integer, target=null::integer ; 
                              select pgr_createTopology('{schema}.{table}', 0.001,'geom','{id_name}')"""
         elif all([a not in gdf_w.columns for a in ['source', 'target']]): 
             rqt_creation_graph=f"""alter table {schema}.{table} add column source int, add column target int ; 
                              select pgr_createTopology('{schema}.{table}', 0.001,'geom','{id_name}')"""
         c.sqlAlchemyConn.execute(rqt_creation_graph)
+        c.connexionPsy.commit()
         print(f'creer_graph : topologie cree ; {datetime.now()}')
         rqt_anlyse_graph=f"SELECT pgr_analyzeGraph('{schema}.{table}', 0.001,'geom','{id_name}')"
         c.curs.execute(rqt_anlyse_graph)#je le fait avec psycopg2 car avec sql acchemy ça ne passe pas
