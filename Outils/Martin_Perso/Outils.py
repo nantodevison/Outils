@@ -112,7 +112,7 @@ def  random_dates(start, end, n=10):
     end_u = end.value//10**9
     return pd.to_datetime(np.random.randint(start_u, end_u, n), unit='s')
    
-def creer_graph(gdf, bdd,id_name='id', schema='public', table='graph_temp', table_vertex='graph_temp_vertices_pgr'):
+def creer_graph(gdf, bdd,id_name='id', schema='public', table='graph_temp', table_vertex='graph_temp_vertices_pgr',localisation='boulot'):
     """
     creer un graph a partir d'une geodataframe en utilisant les ofnctions de postgis.
     attention, pas de return, la table reste dans postgis.
@@ -143,7 +143,7 @@ def creer_graph(gdf, bdd,id_name='id', schema='public', table='graph_temp', tabl
     geo_srid=int(gdf_w.crs.to_string().split(':')[1])
     #passer la geom en texte pour export dans postgis
     gdf_w[geom_name] = gdf_w[geom_name].apply(lambda x: WKTElement(x.wkt, srid=geo_srid))
-    with ct.ConnexionBdd(bdd) as c:
+    with ct.ConnexionBdd(bdd, localisation=localisation) as c:
         #supprimer table si elle existe
         rqt=f"drop table if exists {schema}.{table} ; drop table if exists {schema}.{table_vertex} "
         c.sqlAlchemyConn.execute(rqt)
@@ -170,7 +170,6 @@ def creer_graph(gdf, bdd,id_name='id', schema='public', table='graph_temp', tabl
             rqt_creation_graph=f"""alter table {schema}.{table} add column source int, add column target int ; 
                              select pgr_createTopology('{schema}.{table}', 0.001,'geom','{id_name}')"""
         c.sqlAlchemyConn.execute(rqt_creation_graph)
-        c.connexionPsy.commit()
         print(f'creer_graph : topologie cree ; {datetime.now()}')
         rqt_anlyse_graph=f"SELECT pgr_analyzeGraph('{schema}.{table}', 0.001,'geom','{id_name}')"
         c.curs.execute(rqt_anlyse_graph)#je le fait avec psycopg2 car avec sql acchemy ça ne passe pas
@@ -317,11 +316,12 @@ def verif_index(df, nom_a_check, reset=True, nouveau_nom=None):
     else : 
         return df
 
-def check_colonne_in_table_bdd(bdd, schema_r, table_r,*colonnes) : 
+def check_colonne_in_table_bdd(bdd,localisation, schema_r, table_r,*colonnes) : 
     """
     verifier qu'une table d'une bdd contient les colonnes ciblees
     in : 
        bdd : string : descriptions de la bdd, cf modules id_connexion
+       localisation : facilite d'accees à la bdd : 'boulot' ou autre
        schema_r : string : le nom du schema supportant la table
        table_r : le nom de la table
        colonnes : le nom des colonnes devant etre dans la table, separe par une virgule
@@ -329,7 +329,7 @@ def check_colonne_in_table_bdd(bdd, schema_r, table_r,*colonnes) :
         flag : booleen : true si toute les colonnes sont das la table, False sinon
         list_colonne_manquante : lisrte des colonnes qui manque
     """
-    with ct.ConnexionBdd(bdd) as c : 
+    with ct.ConnexionBdd(bdd,localisation=localisation ) as c : 
         m=MetaData(bind=c.engine,schema=schema_r)
         m.reflect()
         inspector=inspect(c.engine)
