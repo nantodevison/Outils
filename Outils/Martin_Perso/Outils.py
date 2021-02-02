@@ -224,7 +224,7 @@ def epurer_graph(bdd,id_name, schema, table, table_vertex):
     """
     with ct.ConnexionBdd(bdd) as c:
         vertex=pd.read_sql(f'select * from {schema}.{table_vertex}',c.sqlAlchemyConn)
-        lignes=gp.GeoDataFrame.from_postgis(f'select * from {schema}.{table}',c.sqlAlchemyConn,geom_col='geom',crs={'init': 'epsg:2154'})
+        lignes=gp.GeoDataFrame.from_postgis(f'select * from {schema}.{table}',c.sqlAlchemyConn,geom_col='geom',crs='epsg:2154')
     lignes_filtrees=epurer_graph_trouver_lignes_vertex(vertex, lignes)[0]
     #la repasser dans la table postgis
     creer_graph(lignes_filtrees,bdd,id_name,schema, table, table_vertex)
