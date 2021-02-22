@@ -98,6 +98,14 @@ def angle_entre_2_ligne(point_commun, point_ligne1, point_ligne2):
     angle_degres=np.degrees(angle) if np.degrees(angle) > 0 else abs(np.degrees(angle))
     return angle_degres
 
+def typeJour(date):
+    if date.weekday() in range(5) : 
+        return 'JO'
+    elif date.weekday()==5 :
+        return 'Samedi'
+    else : 
+        return 'Dimanche'
+
 def  random_dates(start, end, n=10): 
     """
     creer des dates aleatoires
