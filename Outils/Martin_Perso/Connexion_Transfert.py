@@ -46,16 +46,23 @@ def Ogr2ogr_pg2shp(connstringOgr,fichierShape, requeteSql,reprojection=''):
         subprocess.call(commande,shell=True)
         print('Fait') 
 
-def ogr2ogr_shp2pg(connstringOgr,fichier,schema='public', table='tmp_import_shp',SRID='2154',geotype='MULTILINESTRING', dims=3, creationMode='',encodageClient='UTF-8', requeteSql=''): 
+def ogr2ogr_shp2pg(connstringOgr,fichier,schema='public', table='tmp_import_shp',SRID='2154',geotype='MULTILINESTRING', dims=3, creationMode='',encodageClient='UTF-8', requeteSql='', version_simple=False): 
         """"
         fonction d'import d'un shape dans postgres avec parametres
         en entree  
         connexionOgr issue de ConnexionBdd.connstringOgr
         fichier : raw string 
         creationMode : rien pour créée une nouvelle table, -append -update pour ajouter a une existante (faut mettre les deux
+        version_simple : faire un import sans données de SRID, geotype, ndim
         """
         connexion=connstringOgr.replace(' ','\"',1)
-        cmd='ogr2ogr %s -f "postgreSQL" --config PG_USE_COPY YES -a_srs "EPSG:%s"  -nlt %s -dim %s -lco "SCHEMA=%s" -lco GEOMETRY_NAME=geom %s\" %s -nln %s.%s %s' %(creationMode,SRID,geotype,dims,schema,connexion, fichier,schema,table,requeteSql)
+        if version_simple : 
+            cmd='ogr2ogr %s -f "postgreSQL" -lco "SCHEMA=%s" -lco GEOMETRY_NAME=geom %s\" %s -nln %s.%s' %(creationMode,schema,connexion, fichier,schema,table)
+        elif SRID : 
+            cmd='ogr2ogr %s -f "postgreSQL" -a_srs "EPSG:%s"  -nlt %s -dim %s -lco "SCHEMA=%s" -lco GEOMETRY_NAME=geom %s\" %s -nln %s.%s %s' %(creationMode,SRID,geotype,dims,schema,connexion, fichier,schema,table,requeteSql)
+        else : 
+            cmd='ogr2ogr %s -f "postgreSQL" -lco "SCHEMA=%s" -lco GEOMETRY_NAME=geom %s\" %s -nln %s.%s %s' %(creationMode,schema,connexion, fichier,schema,table,requeteSql)
+        
         encodage='SET PGCLIENTENCODING='+encodageClient
         redirection_gdaldata=r'cd C:\Program Files\GDAL\gdal-data' 
         commande=redirection_gdaldata+" && "+encodage+" && "+cmd

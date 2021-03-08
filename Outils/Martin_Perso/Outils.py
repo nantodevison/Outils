@@ -78,7 +78,7 @@ def epurationNomRoute(nomRoute):
     i,j=0,0 #initialisation compteur
     while nomRoute[i].isalpha(): #determiner le prefixe
         i+=1
-    prefixe=nomRoute[:i]
+    prefixe=nomRoute[:i] if nomRoute[:i] not in ('RN', 'RD') else nomRoute[i-1]
     suffixe=nomRoute[i:]
     while suffixe[j]=='0': #determine le nombre de 0 non significatif
         j+=1
