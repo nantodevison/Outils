@@ -39,7 +39,7 @@ def Ogr2ogr_pg2shp(connstringOgr,fichierShape, requeteSql,reprojection=''):
         """
         connexion=connstringOgr.replace(' ','\"',1)
         reprojection='-t_srs EPSG:'+str(reprojection) if reprojection!='' else ''
-        redirection_gdaldata="cd C:\Program Files\GDAL\gdal-data"
+        redirection_gdaldata=r"cd C:\Users\martin.schoreisz\AppData\Local\Programs\Python\Python38\Lib\site-packages\osgeo\data\gdal"
         cmd='ogr2ogr -f "ESRI shapefile" %s %s" %s -sql "%s" '%(fichierShape, connexion, reprojection, requeteSql)
         commande=redirection_gdaldata+" && "+cmd
         print(f"debut export fichier {fichierShape} \n a {datetime.now().time().isoformat(timespec='seconds')} \n avec commande {cmd}")
@@ -64,7 +64,7 @@ def ogr2ogr_shp2pg(connstringOgr,fichier,schema='public', table='tmp_import_shp'
             cmd='ogr2ogr %s -f "postgreSQL" -lco "SCHEMA=%s" -lco GEOMETRY_NAME=geom %s\" %s -nln %s.%s %s' %(creationMode,schema,connexion, fichier,schema,table,requeteSql)
         
         encodage='SET PGCLIENTENCODING='+encodageClient
-        redirection_gdaldata=r'cd C:\Program Files\GDAL\gdal-data' 
+        redirection_gdaldata=r'cd C:\Users\martin.schoreisz\AppData\Local\Programs\Python\Python38\Lib\site-packages\osgeo\data\gdal' 
         commande=redirection_gdaldata+" && "+encodage+" && "+cmd
         print(f"debut import fichier {fichier} avec shape2pg à {datetime.now().time().isoformat(timespec='seconds')} \n avec commande {cmd}")
         subprocess.call(commande,shell=True)
@@ -74,7 +74,7 @@ def ogr2ogr_csv2pg(connstringOgr, fichier,schema='public', table='tmp_import_shp
         connexion=connstringOgr.replace(' ','\"',1)
         cmd=f'ogr2ogr -f "postgreSQL" --config PG_USE_COPY YES -lco "SCHEMA={schema}" {connexion}\" {fichier} -nln {schema}.{table} -oo HEADERS={headers}'
         encodage='SET PGCLIENTENCODING='+encodageClient
-        redirection_gdaldata=r'cd C:\Program Files\GDAL\gdal-data' 
+        redirection_gdaldata=r'cd C:\Users\martin.schoreisz\AppData\Local\Programs\Python\Python38\Lib\site-packages\osgeo\data\gdal' 
         commande=redirection_gdaldata+" && "+encodage+" && "+cmd
         print(f"debut import fichier {fichier} avec shape2pg à {datetime.now().time().isoformat(timespec='seconds')} \n avec commande {cmd}")
         subprocess.call(commande,shell=True)
@@ -82,7 +82,7 @@ def ogr2ogr_csv2pg(connstringOgr, fichier,schema='public', table='tmp_import_shp
     
 def ogr2ogr_pg2dbf(connstringOgr,fichierdbf, requeteSql):        
         connexion=connstringOgr.replace(' ','\"',1)
-        redirection_gdaldata="cd C:\Program Files\GDAL\gdal-data"
+        redirection_gdaldata=r"cd C:\Users\martin.schoreisz\AppData\Local\Programs\Python\Python38\Lib\site-packages\osgeo\data\gdal"
         cmd='ogr2ogr -f "ESRI shapefile" %s %s" -sql "%s" '%(fichierdbf, connexion, requeteSql)
         commande=redirection_gdaldata+" && "+cmd
         print(f"debut export fichier {fichierdbf} \n a {datetime.now().time().isoformat(timespec='seconds')} \n avec commande {cmd}")
@@ -92,7 +92,7 @@ def ogr2ogr_pg2dbf(connstringOgr,fichierdbf, requeteSql):
 def ogr2ogrAsc2xyz(fichierAsc,epsg=2154):
         """Fonction de conversion d'un fichier .asc en .xyz"""
         fichierXyz=fichierAsc[:-3]+'xyz'
-        redirection_gdaldata="cd C:\Program Files\GDAL\gdal-data"
+        redirection_gdaldata=r"cd C:\Users\martin.schoreisz\AppData\Local\Programs\Python\Python38\Lib\site-packages\osgeo\data\gdal"
         commandeGdal='gdal_translate -of XYZ -a_srs EPSG:%s %s %s'%(epsg,fichierAsc,fichierXyz)
         cmd= redirection_gdaldata+'&&'+ commandeGdal
         subprocess.call(cmd,shell=True)
