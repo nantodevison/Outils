@@ -46,7 +46,7 @@ def Ogr2ogr_pg2shp(connstringOgr,fichierShape, requeteSql,reprojection=''):
         subprocess.call(commande,shell=True)
         print('Fait') 
 
-def ogr2ogr_shp2pg(connstringOgr,fichier,schema='public', table='tmp_import_shp',SRID='2154',geotype='MULTILINESTRING', dims=3, creationMode='',encodageClient='UTF-8', requeteSql='', version_simple=False): 
+def ogr2ogr_shp2pg(connstringOgr,fichier,schema='public', table='tmp_import_shp',SRID='2154',geotype='MULTILINESTRINGZ', dims=3, creationMode='',encodageClient='UTF-8', requeteSql='', version_simple=False): 
         """"
         fonction d'import d'un shape dans postgres avec parametres
         en entree  
