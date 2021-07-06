@@ -13,5 +13,5 @@ gti_lapi_final 172.22.37.4 5432 postgres postgre lapi_final
 sftp_setra_gittadmin acoustique.cerema.fr 22 gittadmin bruitAcou00!
 station_gere 172.22.112.101 5432 postgres postgres Bdd_BAU
 local_fichiers_fonciers localhost 5432 postgres postgres fichiers_fonciers
-basket localhost 5432 postgres postgres Basket 
+basket localhost 5432 postgres postgres basket 
 mdb xxxx 9999 xxxxx xxxxx xxx
