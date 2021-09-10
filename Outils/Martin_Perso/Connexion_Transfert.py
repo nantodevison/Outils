@@ -26,7 +26,10 @@ def ouvrirFichierParametre(typeParametres,localisation):
         for texte in f_id :
             ligne=texte.strip().split(' ')
             dicoParametres[ligne[0]]=ligne[1:]
-        return (dicoParametres[typeParametres])
+        if typeParametres not in dicoParametres.keys() : 
+            raise KeyError(f'la valeur {typeParametres} n\'est pas présente dans le fichier d\'identifiants des connexions')
+        else : 
+            return (dicoParametres[typeParametres])
  
 def Ogr2ogr_pg2shp(connstringOgr,fichierShape, requeteSql,reprojection=''):
         """
