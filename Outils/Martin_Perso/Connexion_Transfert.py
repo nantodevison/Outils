@@ -19,7 +19,7 @@ from shapely.geometry import Point
 
 
 #fonction d'ouverture du fichier de parametres
-def ouvrirFichierParametre(typeParametres,localisation):
+def ouvrirFichierParametre(typeParametres):
     chemin=r'C:\Users\martin.schoreisz\git\Outils\Outils\Martin_Perso\Id_connexions'
     with open(chemin,'r') as f_id :
         dicoParametres={}
@@ -140,25 +140,23 @@ class Ogr2Ogr(object):
 
 class ConnexionBdd(object):
 
-    def __init__(self,typeBdd, schema='public', table='tmp',localisation='boulot',parent=None, fichierMdb=None):
+    def __init__(self,typeBdd, schema='public', table='tmp',parent=None, fichierMdb=None):
         '''
         Constructeur
         les identiiants de connexions sont generes automatiquement lors de la creation de l'objet
         mais on peut les changer et les modif si besoin en entrant un nouveau typeBdd
-        localisation : traduit si je suis au boulot ou à la maison, ce qui modifie les chemins liés a User
         '''
         
         #attributs �  partir des parametres
         self.typeBdd=typeBdd
         self.fichierMdb=fichierMdb
-        self.localisation=localisation
         if self.typeBdd=='mdb' : # dans le cas d'un fichier mdb il faut s'assurer que le driver est là
             if not [x for x in pyodbc.drivers() if x.startswith('Microsoft Access Driver')] : 
                 raise self.DriverMdbError() 
             if not fichierMdb : 
                 raise self.FichierMdbError()
         else : 
-            self.serveur, self.port, self.user, self.mdp, self.bdd = ouvrirFichierParametre(self.typeBdd,self.localisation)
+            self.serveur, self.port, self.user, self.mdp, self.bdd = ouvrirFichierParametre(self.typeBdd)
         self.creerConnexionString()
 
     def creerConnexionString(self):

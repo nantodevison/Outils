@@ -19,7 +19,7 @@ class TestConnexionBdd(unittest.TestCase):
         
     def testIdConnexionDansFichiersParams(self):
         """
-        tester qu'un nom de connexion non pr�sent dans le fichier renvoie bien une erreur de cl�
+        tester qu'un nom de connexion non present dans le fichier renvoie bien une erreur de cle
         """
         self.assertRaises(KeyError,ouvrirFichierParametre, 'toto', 'boulot')
         
