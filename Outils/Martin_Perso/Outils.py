@@ -324,12 +324,11 @@ def verif_index(df, nom_a_check, reset=True, nouveau_nom=None):
     else : 
         return df
 
-def check_colonne_in_table_bdd(bdd,localisation, schema_r, table_r,*colonnes) : 
+def check_colonne_in_table_bdd(bdd, schema_r, table_r,*colonnes) : 
     """
     verifier qu'une table d'une bdd contient les colonnes ciblees
     in : 
        bdd : string : descriptions de la bdd, cf modules id_connexion
-       localisation : facilite d'accees à la bdd : 'boulot' ou autre
        schema_r : string : le nom du schema supportant la table
        table_r : le nom de la table
        colonnes : le nom des colonnes devant etre dans la table, separe par une virgule
@@ -337,7 +336,7 @@ def check_colonne_in_table_bdd(bdd,localisation, schema_r, table_r,*colonnes) :
         flag : booleen : true si toute les colonnes sont das la table, False sinon
         list_colonne_manquante : lisrte des colonnes qui manque
     """
-    with ct.ConnexionBdd(bdd,localisation=localisation ) as c : 
+    with ct.ConnexionBdd(bdd) as c : 
         m=MetaData(bind=c.engine,schema=schema_r)
         m.reflect()
         inspector=inspect(c.engine)
@@ -347,7 +346,26 @@ def check_colonne_in_table_bdd(bdd,localisation, schema_r, table_r,*colonnes) :
     if all([e in columns for e in colonnes]) : 
         return True,[]
     else : 
-        return False,[e for e in colonnes if e not in columns]        
+        return False,[e for e in colonnes if e not in columns]    
+    
+def checkAttributsinDf(df, attributs):
+    """
+    vérifier qu'une df contient tout les attributs voulu sinon leve une Attribute Error
+    in : 
+        df : dataframe a tester
+        attributs : strin ou list de string
+    """    
+    if isinstance(attributs, str) : 
+        if not attributs in df.columns : 
+            raise AttributeError(f"l'attribut {attributs} n'est pas present dans la df ")
+        else :
+            return True
+    elif isinstance(attributs, list) and all([isinstance(e, str) for e in attributs]) : 
+        if not all([e in df.columns for e in attributs]) : 
+            raise AttributeError(f"tous les attribut {','.join(attributs)} doivent etre presents dans la df ")
+        else : return True
+    else : 
+        raise TypeError('le parametre attributs doit etre une string ou list de string')
         
 def getIndexes(dfObj, value):
     ''' Get index positions of value in dataframe i.e. dfObj.'''

@@ -21,7 +21,7 @@ class TestConnexionBdd(unittest.TestCase):
         """
         tester qu'un nom de connexion non present dans le fichier renvoie bien une erreur de cle
         """
-        self.assertRaises(KeyError,ouvrirFichierParametre, 'toto', 'boulot')
+        self.assertRaises(KeyError,ouvrirFichierParametre, 'toto')
         
     def testConnexionsSqlAlchemyOuvertes(self):
         """
