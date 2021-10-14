@@ -30,6 +30,14 @@ class TestOutils(unittest.TestCase):
     def test_checkAttributsinDf_TypeAttrFail(self):
         df=pd.DataFrame({'toto':[1,2,3], 'tata':[1,2,3]})
         self.assertRaises(TypeError, O.checkAttributsinDf, df, 123)
+        
+    def test_checkAttributValues_ok(self):
+        df=pd.DataFrame({'attr':['toto', 'tata']})
+        self.assertTrue(O.checkAttributValues(df, 'attr', 'toto', 'tata'))
+        
+    def test_checkAttributValues_ko(self):
+        df=pd.DataFrame({'attr':['toto', 'tata']})
+        self.assertRaises(ValueError,O.checkAttributValues,df, 'attr', 'titi', 'tata')
 
 
 if __name__ == "__main__":

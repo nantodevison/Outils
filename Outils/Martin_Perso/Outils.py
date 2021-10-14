@@ -366,6 +366,18 @@ def checkAttributsinDf(df, attributs):
         else : return True
     else : 
         raise TypeError('le parametre attributs doit etre une string ou list de string')
+    
+def checkAttributValues(df, attribut, *valeurs):
+    """
+    vérifier qu'un attribut d'une df est bien toujours dans la liste attendu (comportement FK)
+    in : 
+        df : dataframe supportant l'attribut
+        attribut : string : nom de l'attribut
+        valeurs : les valeurs acceptees
+    """
+    if not all([v in valeurs for v in df[attribut].unique()]) :
+        raise ValueError(f" l'une des valeur de l'attribut '{attribut}' n'es pas dans la liste {','.join(valeurs)}")
+    else : return True
         
 def getIndexes(dfObj, value):
     ''' Get index positions of value in dataframe i.e. dfObj.'''
