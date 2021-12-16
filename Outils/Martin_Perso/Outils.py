@@ -253,7 +253,7 @@ def plus_proche_voisin(df_src, df_comp, dist_recherche, id_df_src, id_df_comp, s
     geom_src_nom,geom_comp_nom=df_src_temp.geometry.name, df_comp_temp.geometry.name
     df_src_temp['geom_src']=df_src_temp.geometry #stocker la geometrie source
     df_src_temp.geometry=df_src_temp.buffer(dist_recherche)#passer la geom en buffer
-    intersct_buff=gp.sjoin(df_src_temp,df_comp_temp,how='left',op='intersects') #chcrecher les objets qui intersectent
+    intersct_buff=gp.sjoin(df_src_temp,df_comp_temp,how='left',predicate='intersects') #chcrecher les objets qui intersectent
     intersct_buff.geometry=df_src_temp.geom_src#repasser la geom en point
     
     id_comp=id_df_comp+'_right'
@@ -275,7 +275,7 @@ def plus_proche_voisin(df_src, df_comp, dist_recherche, id_df_src, id_df_comp, s
         joint_dist_min=intersct_buff.loc[intersct_buff.groupby(id_df_src)['dist_pt_ligne'].transform(min)==intersct_buff
                                          ['dist_pt_ligne']][[id_df_src,id_df_comp]].copy()
         
-    return joint_dist_min
+    return joint_dist_min.drop_duplicates()
 
 def cluster_spatial(gdf, distance):
     """
@@ -362,10 +362,21 @@ def checkAttributsinDf(df, attributs):
             return True
     elif isinstance(attributs, list) and all([isinstance(e, str) for e in attributs]) : 
         if not all([e in df.columns for e in attributs]) : 
-            raise AttributeError(f"tous les attribut {','.join(attributs)} doivent etre presents dans la df ")
+            raise AttributeError(f"les attribut {','.join([e for e in attributs if e not in df.columns])} doivent etre presents dans la df ")
         else : return True
     else : 
         raise TypeError('le parametre attributs doit etre une string ou list de string')
+ 
+def checkParamValues(variable, values):
+    """
+    vérifier qu'une variable prend bien toujours une des valeurs attendues (comportement FK)
+    in : 
+        variable : la variable a tester
+        values : tuple ou list de valeurs possibles
+    """ 
+    if not variable in values : 
+        raise ValueError(f" la valeur {variable} n'es pas dans la liste des possible : {','.join(values)}")
+    
     
 def checkAttributValues(df, attribut, *valeurs):
     """
