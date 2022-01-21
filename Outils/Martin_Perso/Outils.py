@@ -5,8 +5,7 @@ Created on 26 oct. 2017
 @author: martin.schoreisz
 '''
 
-import matplotlib #pour eviter pb rcParams
-import os
+import os, re
 import shutil
 import glob
 import pyproj
@@ -23,6 +22,7 @@ from sqlalchemy.schema import MetaData
 from sqlalchemy import inspect
 from sklearn.cluster import DBSCAN
 from builtins import isinstance
+from vacances_scolaires_france import SchoolHolidayDates
 
 def CopierFichierDepuisArborescence(dossierEntree,dossierSortie, extension=None):
     """ fonction de copie en masse des fichiers au sein d'une raborescence
@@ -438,6 +438,25 @@ def reprojeter_shapely(geom, epsg_src, epsg_dest):
     if not geom : 
         return project, None
     return project, transform(project, geom)
+
+def verifVacanceRange(periode, zone='A'):
+    """
+    vérifier que l'un des jours d'une ou plusieurs periode de forme YYYY/MM/dd-YYYY/MM/dd séparées par ' ; '
+     fais oartie de vancances selon une zone
+    in : 
+        periode : string : décrit une ou plusieurs periode de forme YYYY/MM/dd-YYYY/MM/dd séparées par ' ; '
+        zone : string : A B ou C 
+    """
+    if not periode:
+        return False
+    if not re.match('(20[0-9]{2}\/(0[1-9]|1[0-2])\/(0[1-9]|[1-2][0-9]|3[0-1])-20[0-9]{2}\/(0[1-9]|1[0-2])\/(0[1-9]|[1-2][0-9]|3[0-1]))+( ; )*',
+                    periode):
+        raise ValueError("l'attribut periode doit avoir la forme d'une ou plusieurs periode de forme YYYY/MM/dd-YYYY/MM/dd séparées par ' ; '")
+    checkParamValues(zone, ('A', 'B', 'C'))
+    d = SchoolHolidayDates()
+    indexDate = pd.concat([pd.Series(pd.date_range(p.split('-')[0], p.split('-')[1])) for p in periode.split(' ; ')])
+    return any([d.is_holiday_for_zone(j.date(), zone) for j in indexDate.tolist()]) 
+    
         
         
         
