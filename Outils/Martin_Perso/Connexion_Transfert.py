@@ -147,7 +147,7 @@ class ConnexionBdd(object):
         mais on peut les changer et les modif si besoin en entrant un nouveau typeBdd
         '''
         
-        #attributs �  partir des parametres
+        #attributs   partir des parametres
         self.typeBdd=typeBdd
         self.fichierMdb=fichierMdb
         if self.typeBdd=='mdb' : # dans le cas d'un fichier mdb il faut s'assurer que le driver est là

@@ -5,7 +5,7 @@ Created on 26 oct. 2017
 @author: martin.schoreisz
 '''
 
-import os, re
+import os, re, pathlib
 import shutil
 import glob
 import pyproj
@@ -31,15 +31,22 @@ def CopierFichierDepuisArborescence(dossierEntree,dossierSortie, extension=None)
         dossierSortie : raw string du dossier destination
         extension : string : extension avec le . pour ne copier que les fichier es types souhaites
     """
-    for root, dir, files in os.walk(dossierEntree):  #
+    i = 0
+    for root, dir, files in os.walk(dossierEntree):
         for file in files:
+            dest = os.path.join(dossierSortie, file)
             path_file = os.path.join(root,file)
             if extension : 
                 if file.lower().endswith(extension.lower()) : 
-                    try :
-                        shutil.copy2(path_file,dossierSortie)
-                    except :
-                        pass
+                    if not pathlib.Path(dest).is_file():
+                        shutil.copyfile(path_file, dest)
+                    else:
+                        print(file)
+                        chemin = pathlib.PurePath(dest)
+                        nomFichierDestModif = f'{chemin.stem}__{i}{chemin.suffix}'
+                        print(nomFichierDestModif)
+                        shutil.copyfile(path_file,os.path.join(dossierSortie, nomFichierDestModif))
+                        i += 1                
             else :
                 try :
                     shutil.copy2(path_file,dossierSortie)
@@ -445,7 +452,9 @@ def verifVacanceRange(periode, zone='A'):
      fais oartie de vancances selon une zone
     in : 
         periode : string : décrit une ou plusieurs periode de forme YYYY/MM/dd-YYYY/MM/dd séparées par ' ; '
-        zone : string : A B ou C 
+        zone : string : A B ou C
+    out : 
+        boolean
     """
     if not periode:
         return False
