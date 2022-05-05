@@ -158,7 +158,7 @@ class Route(object):
         if (0<=self.declivite<=2 and (self.allure== 's' or self.allure== 'd')) or (
             self.allure== 'd' and  2<self.declivite<=6) : 
             correctif=0
-        elif (0<=self.declivite<=2 and self.allure== 'a') or (-6<=self.declivite<-2) : 
+        elif self.allure== 'a' and ((0<=self.declivite<=2) or (-6<=self.declivite<-2)) : 
             correctif=5
         elif -6<=self.declivite<-2 and (self.allure== 's' or self.allure== 'd') : 
             correctif=1*(self.declivite-2)
