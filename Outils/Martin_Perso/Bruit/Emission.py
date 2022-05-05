@@ -146,7 +146,7 @@ class Route(object):
         else : 
             if 25<=self.vtsVl<=80 : 
                 self.lmwmVl=42.1-(4.5*math.log10(self.vtsVl/90))
-            elif 31<=self.vtsVl<=110 : 
+            elif 81<=self.vtsVl<=110 : 
                 self.lmwmVl=42.4+(2*math.log10(self.vtsVl/90))
             else : 
                 self.lmwmVl=40.7+(21.3*math.log10(self.vtsVl/90))
