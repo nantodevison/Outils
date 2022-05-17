@@ -203,7 +203,7 @@ class Route(object):
         calcul du niveau de puissance par unite de longueur pour une route
         """
         
-        self.lwm=sommeEnergetique(self.lwVl, self.lwPl)
+        self.lwm=round(sommeEnergetique(self.lwVl, self.lwPl),2)
             
     def repartitionSpectrale(self):
         if self.drainant : 
