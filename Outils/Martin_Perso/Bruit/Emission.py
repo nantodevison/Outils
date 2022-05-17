@@ -13,7 +13,14 @@ def sommeEnergetique(l1,l2):
     """
     faire la somme energetique de deux niveaux de puissance
     """
-    return 10*math.log10(pow(10,l1/10)+pow(10,l2/10))
+    if l1 == 0 and l2 == 0:
+        return 0
+    elif l1 == 0 and l2 != 0:
+        return l2
+    elif l1 != 0 and l2 == 0:
+        return l1
+    else:
+        return 10*math.log10(pow(10,l1/10)+pow(10,l2/10))
 
 def testValiditeVts(vtsVl, vtsPl):
     if vtsVl<20 or vtsVl>130: 
@@ -193,10 +200,16 @@ class Route(object):
         self.lwmPl = sommeEnergetique(self.lrwmPl,self.lmwmPl) 
         
     def calculLwVl(self):
-        self.lwVl=self.lwmVl+10*math.log10(self.debitVl)
+        if pd.isnull(self.debitVl) or self.debitVl == 0: 
+            self.lwVl = 0
+        else: 
+            self.lwVl=self.lwmVl+10*math.log10(self.debitVl)
     
     def calculLwPl(self):
-        self.lwPl=self.lwmPl+10*math.log10(self.debitPl)
+        if pd.isnull(self.debitPl) or self.debitPl == 0: 
+            self.lwPl = 0
+        else:
+            self.lwPl=self.lwmPl+10*math.log10(self.debitPl)
     
     def calculLwm(self):
         """
