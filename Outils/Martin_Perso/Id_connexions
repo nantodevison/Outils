@@ -15,5 +15,5 @@ station_gere 172.22.112.101 5432 postgres postgres Bdd_BAU
 local_fichiers_fonciers localhost 5432 postgres postgres fichiers_fonciers
 basket localhost 5432 postgres postgres basket 
 plamade localhost 5432 postgres postgres plamade
-echangeur_24_bruit_bm localhost 5432 postgres postgres ech24
+ech24 localhost 5432 postgres postgres echangeur_24_bruit_bm
 mdb xxxx 9999 xxxxx xxxxx xxx
