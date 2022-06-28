@@ -24,6 +24,7 @@ from sklearn.cluster import DBSCAN
 from builtins import isinstance
 from vacances_scolaires_france import SchoolHolidayDates
 
+
 def CopierFichierDepuisArborescence(dossierEntree,dossierSortie, extension=None):
     """ fonction de copie en masse des fichiers au sein d'une raborescence
     in : 
@@ -53,18 +54,20 @@ def CopierFichierDepuisArborescence(dossierEntree,dossierSortie, extension=None)
                 except :
                     pass
 
+
 def ListerFichierDossier(dossier,extension=''):
     """lister les fichier d'un dossier selon une extenssion
     en entrée : chemin du dossier avec le préfixe r ou les \ doublés en \\ 
     en entree : l'extension avec le '.'
     en sortie : listefinale : la liste des fichiers
     """
-    listeCompleteFichier=glob.glob(dossier+"//*"+extension)
-    listeFinale=[]
+    listeCompleteFichier = glob.glob(dossier+"//*"+extension)
+    listeFinale = []
     for nomFichier in listeCompleteFichier : 
-        suffixeNomFichier=os.path.split(nomFichier)[1]
+        suffixeNomFichier = os.path.split(nomFichier)[1]
         listeFinale.append(suffixeNomFichier)
     return listeFinale
+
 
 def remplacementMultiple(text, dico):
     """fonction de remplacement de plusieurs caractères par d'autres
@@ -75,6 +78,7 @@ def remplacementMultiple(text, dico):
     for i, j in dico.iteritems():
         text = text.replace(i, j)
     return text     
+
 
 def epurationNomRoute(nomRoute):
     '''
@@ -92,6 +96,7 @@ def epurationNomRoute(nomRoute):
     suffixeTraite=suffixe[j:]
     return prefixe+suffixeTraite
 
+
 def angle_entre_2_ligne(point_commun, point_ligne1, point_ligne2):
     '''
     Calcul d'angle entre 3 points
@@ -99,19 +104,21 @@ def angle_entre_2_ligne(point_commun, point_ligne1, point_ligne2):
     en sortie : -> angle float
     '''
     #creer les vecteurs
-    v0=np.array(point_ligne1) - np.array(point_commun)
-    v1=np.array(point_ligne2) - np.array(point_commun)
+    v0 = np.array(point_ligne1) - np.array(point_commun)
+    v1 = np.array(point_ligne2) - np.array(point_commun)
     angle = np.math.atan2(np.linalg.det([v0,v1]),np.dot(v0,v1))
-    angle_degres=np.degrees(angle) if np.degrees(angle) > 0 else abs(np.degrees(angle))
+    angle_degres = np.degrees(angle) if np.degrees(angle) > 0 else abs(np.degrees(angle))
     return angle_degres
+
 
 def typeJour(date):
     if date.weekday() in range(5) : 
         return 'JO'
-    elif date.weekday()==5 :
+    elif date.weekday() == 5 :
         return 'Samedi'
     else : 
         return 'Dimanche'
+
 
 def  random_dates(start, end, n=10): 
     """
@@ -126,6 +133,7 @@ def  random_dates(start, end, n=10):
     start_u = start.value//10**9
     end_u = end.value//10**9
     return pd.to_datetime(np.random.randint(start_u, end_u, n), unit='s')
+   
    
 def creer_graph(gdf, bdd,id_name='id', schema='public', table='graph_temp', table_vertex='graph_temp_vertices_pgr',localisation='boulot'):
     """
@@ -191,6 +199,7 @@ def creer_graph(gdf, bdd,id_name='id', schema='public', table='graph_temp', tabl
         print(f'creer_graph : graph cree ; {datetime.now()}')
         c.connexionPsy.commit()
 
+
 def epurer_graph_trouver_lignes_vertex(vertex, lignes):
     """
     trouver les lignes et vertex des voies de categories 5 qui intersectent que des voies de categoriie 3 ou plus. prealable a la
@@ -225,6 +234,7 @@ def epurer_graph_trouver_lignes_vertex(vertex, lignes):
     lignes_filtrees=lignes.loc[~lignes['id_ign'].isin(liste_ligne_filtre)].copy()
     return lignes_filtrees, liste_ligne_filtre, liste_vertex_filtre
     
+    
 def epurer_graph(bdd,id_name, schema, table, table_vertex):
     """
     enlever d'un graph en bdd les voies de catégorie 5 qui intersectent des voies de catégorie 4 ou plus
@@ -243,6 +253,7 @@ def epurer_graph(bdd,id_name, schema, table, table_vertex):
     lignes_filtrees=epurer_graph_trouver_lignes_vertex(vertex, lignes)[0]
     #la repasser dans la table postgis
     creer_graph(lignes_filtrees,bdd,id_name,schema, table, table_vertex)
+
 
 def plus_proche_voisin(df_src, df_comp, dist_recherche, id_df_src, id_df_comp, same=False):
     """
@@ -284,6 +295,7 @@ def plus_proche_voisin(df_src, df_comp, dist_recherche, id_df_src, id_df_comp, s
         
     return joint_dist_min.drop_duplicates()
 
+
 def cluster_spatial(gdf, distance):
     """
     ajouter un attribut 'n_cluster' de regourpement des objets d'une df selon une distance inter objet
@@ -293,12 +305,13 @@ def cluster_spatial(gdf, distance):
         gdf : geodataframe avec une geometrie en mètre
         distance : integer : ecart max entre 2 objets regroupables
     """
-    gdf['x_l93']=gdf.geometry.apply(lambda x : x.x)
-    gdf['y_l93']=gdf.geometry.apply(lambda x : x.y)
-    limMet_clust=[[x, y] for x, y in zip(gdf.x_l93.tolist(), gdf.y_l93.tolist())]
+    gdf['x_l93'] = gdf.geometry.apply(lambda x : x.x)
+    gdf['y_l93'] = gdf.geometry.apply(lambda x : x.y)
+    limMet_clust = [[x, y] for x, y in zip(gdf.x_l93.tolist(), gdf.y_l93.tolist())]
     db = DBSCAN(eps=distance, min_samples=2).fit(limMet_clust)
     labels = db.labels_
     gdf['n_cluster']=labels
+
 
 def nb_noeud_unique_troncon_continu(df, idtroncon,nom_idtroncon):
     """
@@ -311,11 +324,12 @@ def nb_noeud_unique_troncon_continu(df, idtroncon,nom_idtroncon):
         list_noeud_uniq : list des noeuds vu une seule fois dans le troncon
         list_noeud : list des noeuds du troncon
     """
-    noeud_troncon=df.loc[df[nom_idtroncon]==idtroncon] # toute les lignes du troncon
+    noeud_troncon = df.loc[df[nom_idtroncon]==idtroncon] # toute les lignes du troncon
     #utilisation de Counter pour avoir le nb d'occurence'
-    list_noeud=[k for k in Counter(noeud_troncon.source.tolist()+noeud_troncon.target.tolist()).keys()]
-    list_noeud_uniq=tuple([k for k,v in Counter(noeud_troncon.source.tolist()+noeud_troncon.target.tolist()).items() if v==1]) 
+    list_noeud = [k for k in Counter(noeud_troncon.source.tolist()+noeud_troncon.target.tolist()).keys()]
+    list_noeud_uniq = tuple([k for k,v in Counter(noeud_troncon.source.tolist()+noeud_troncon.target.tolist()).items() if v == 1]) 
     return list_noeud_uniq,list_noeud
+
 
 def verif_index(df, nom_a_check, reset=True, nouveau_nom=None):
     """
@@ -330,6 +344,7 @@ def verif_index(df, nom_a_check, reset=True, nouveau_nom=None):
         return df.reset_index()
     else : 
         return df
+
 
 def check_colonne_in_table_bdd(bdd, schema_r, table_r,*colonnes) : 
     """
@@ -355,6 +370,7 @@ def check_colonne_in_table_bdd(bdd, schema_r, table_r,*colonnes) :
     else : 
         return False,[e for e in colonnes if e not in columns]    
     
+    
 def checkAttributsinDf(df, attributs):
     """
     vérifier qu'une df contient tout les attributs voulu sinon leve une Attribute Error
@@ -373,6 +389,7 @@ def checkAttributsinDf(df, attributs):
         else : return True
     else : 
         raise TypeError('le parametre attributs doit etre une string ou list de string')
+ 
  
 def checkParamValues(variable, values):
     """
@@ -396,6 +413,7 @@ def checkAttributValues(df, attribut, *valeurs):
     if not all([v in valeurs for v in df[attribut].unique()]) :
         raise ValueError(f" l'une des valeur de l'attribut '{attribut}' n'es pas dans la liste {','.join(valeurs)}")
     else : return True
+      
         
 def getIndexes(dfObj, value):
     ''' Get index positions of value in dataframe i.e. dfObj.'''
@@ -413,12 +431,14 @@ def getIndexes(dfObj, value):
     # Return a list of tuples indicating the positions of value in the dataframe
     return listOfPos   
 
+
 def gp_changer_nom_geom(gdf, new_name, srid=2154):
     """
     changer le nom de la colonne geometrie dans une geodataframe
     """
     gdf_modif=gdf.rename(columns={gdf.geometry.name : new_name}).set_geometry(new_name)
     return gdf_modif 
+
 
 def find_sublist(sub, bigger):
     first, rest = sub[0], sub[1:]
@@ -430,6 +450,7 @@ def find_sublist(sub, bigger):
                 return pos
     except ValueError:
         return -1
+    
     
 def reprojeter_shapely(geom, epsg_src, epsg_dest):
     """
@@ -445,6 +466,7 @@ def reprojeter_shapely(geom, epsg_src, epsg_dest):
     if not geom : 
         return project, None
     return project, transform(project, geom)
+
 
 def verifVacanceRange(periode, zone='A'):
     """
@@ -465,6 +487,34 @@ def verifVacanceRange(periode, zone='A'):
     d = SchoolHolidayDates()
     indexDate = pd.concat([pd.Series(pd.date_range(p.split('-')[0], p.split('-')[1])) for p in periode.split(' ; ')])
     return any([d.is_holiday_for_zone(j.date(), zone) for j in indexDate.tolist()]) 
+
+
+def regrouperLigneDfValeurNonNulle(df, privilegeType='derniere'):
+    """
+    Dans une dataframe, regrouper plusieurs ligne en privilegiant les valeurs non nulles.
+    si plusieurs valeusr possibles, on peut choisir de privilegier la 'premiere' ou la 'derniere' (derniere par defaut)
+    fonction utilisabel par groupby uniquement, renvoi une nouvelle dataframe
+    in : 
+        df : la datafarme à regrouper
+        privilegeType : 'derniere' ou 'premiere' : si plusieurs valeurs différentes, prvilegeier la premiere ou la derniere
+    out : 
+        nouvelle dataframe regroupee
+    """
+    checkParamValues(privilegeType, ['premiere', 'derniere'])
+    listePossible = []
+    for a in df:
+        if not pd.isnull(a):
+            listePossible.append(a)
+    if not listePossible:
+        return np.nan
+    if len(set(listePossible)) == 1:
+        return listePossible[0]
+    else : 
+        if privilegeType == 'derniere':
+            return listePossible[-1]
+        elif privilegeType == 'premiere':
+            return listePossible[0]
+    
     
         
         

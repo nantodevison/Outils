@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 '''
 Created on 25 mai 2022
 
@@ -13,9 +14,9 @@ def Niveau2Pression(NiveauBruit):
     """
     transformer un niveau de pression en dB en pression en Pascal
     in : 
-        NiveauBruit : réel positif
+        NiveauBruit : reel positif
     out : 
-        pression : réel positif
+        pression : reel positif
     """
     return pRef*pow(10,NiveauBruit/20)
 
@@ -23,8 +24,8 @@ def Pression2Niveau(pression):
     """
     transformer une pression efficace en pascal en niveau en db
     in : 
-        pression : réeel positif
+        pression : reel positif
     out : 
-        NiveauBruit : réel positif
+        NiveauBruit : reel positif
     """
     return 20*log10(pression/pRef)
