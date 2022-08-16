@@ -140,7 +140,7 @@ class Ogr2Ogr(object):
 
 class ConnexionBdd(object):
 
-    def __init__(self,typeBdd, schema='public', table='tmp',parent=None, fichierMdb=None):
+    def __init__(self,typeBdd='local_otv_boulot', schema='public', table='tmp',parent=None, fichierMdb=None):
         '''
         Constructeur
         les identiiants de connexions sont generes automatiquement lors de la creation de l'objet
