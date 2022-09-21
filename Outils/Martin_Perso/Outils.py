@@ -267,16 +267,16 @@ def plus_proche_voisin(df_src, df_comp, dist_recherche, id_df_src, id_df_comp, s
         same : boleen : si la mm df est entree 2 fois en entree
     """
     
-    df_src_temp, df_comp_temp=df_src.copy(), df_comp.copy() #copie pour ne pas modifier la df source
-    geom_src_nom,geom_comp_nom=df_src_temp.geometry.name, df_comp_temp.geometry.name
-    df_src_temp['geom_src']=df_src_temp.geometry #stocker la geometrie source
-    df_src_temp.geometry=df_src_temp.buffer(dist_recherche)#passer la geom en buffer
-    intersct_buff=gp.sjoin(df_src_temp,df_comp_temp,how='left',predicate='intersects') #chcrecher les objets qui intersectent
-    intersct_buff.geometry=df_src_temp.geom_src#repasser la geom en point
+    df_src_temp, df_comp_temp = df_src.copy(), df_comp.copy() #copie pour ne pas modifier la df source
+    geom_src_nom,geom_comp_nom = df_src_temp.geometry.name, df_comp_temp.geometry.name
+    df_src_temp['geom_src'] = df_src_temp.geometry #stocker la geometrie source
+    df_src_temp.geometry = df_src_temp.buffer(dist_recherche)#passer la geom en buffer
+    intersct_buff = gp.sjoin(df_src_temp, df_comp_temp, how='left', predicate='intersects') #chcrecher les objets qui intersectent
+    intersct_buff.geometry = df_src_temp.geom_src#repasser la geom en point
     
-    id_comp=id_df_comp+'_right'
-    if id_df_src==id_df_comp : #si les 2 ids ont le mm nom la jointure spatiale a produit un nom avec _right apres
-        id_src=id_df_src+'_left'  
+    id_comp = id_df_comp + '_right'
+    if id_df_src == id_df_comp: #si les 2 ids ont le mm nom la jointure spatiale a produit un nom avec _right apres
+        id_src = id_df_src + '_left'  
         intersct_buff=intersct_buff.merge(df_comp_temp[[id_df_comp,geom_comp_nom]], left_on=id_comp, right_on=id_df_comp)#recupérer la gémoétrie des objets qui intersectent
         if geom_src_nom==geom_comp_nom : #si les noms de geometries sont les memes des suffixes sont ajoutes
             geom_src_nom,geom_comp_nom=geom_src_nom+'_x',geom_comp_nom+'_y'
@@ -286,11 +286,11 @@ def plus_proche_voisin(df_src, df_comp, dist_recherche, id_df_src, id_df_comp, s
         joint_dist_min=intersct_buff.loc[intersct_buff.groupby(id_src)['dist_pt_ligne'].transform(min)==intersct_buff
                                          ['dist_pt_ligne']][[id_src,id_comp]].copy()
     else : 
-        intersct_buff=intersct_buff.merge(df_comp_temp[[id_df_comp,geom_comp_nom]], left_on=id_df_comp, right_on=id_df_comp)
-        if geom_src_nom==geom_comp_nom : #si les noms de geometries sont les memes des suffixes sont ajoutes
-            geom_src_nom,geom_comp_nom=geom_src_nom+'_x',geom_comp_nom+'_y'
-        intersct_buff['dist_pt_ligne']=intersct_buff.apply(lambda x : x[geom_src_nom].distance(x[geom_comp_nom]), axis=1)
-        joint_dist_min=intersct_buff.loc[intersct_buff.groupby(id_df_src)['dist_pt_ligne'].transform(min)==intersct_buff
+        intersct_buff = intersct_buff.merge(df_comp_temp[[id_df_comp, geom_comp_nom]], left_on=id_df_comp, right_on=id_df_comp)
+        if geom_src_nom == geom_comp_nom : #si les noms de geometries sont les memes des suffixes sont ajoutes
+            geom_src_nom, geom_comp_nom = geom_src_nom+'_x', geom_comp_nom+'_y'
+        intersct_buff['dist_pt_ligne'] = intersct_buff.apply(lambda x: x[geom_src_nom].distance(x[geom_comp_nom]), axis=1)
+        joint_dist_min = intersct_buff.loc[intersct_buff.groupby(id_df_src)['dist_pt_ligne'].transform(min) == intersct_buff
                                          ['dist_pt_ligne']][[id_df_src,id_df_comp]].copy()
         
     return joint_dist_min.drop_duplicates()
@@ -432,11 +432,11 @@ def getIndexes(dfObj, value):
     return listOfPos   
 
 
-def gp_changer_nom_geom(gdf, new_name, srid=2154):
+def gp_changer_nom_geom(gdf, new_name):
     """
     changer le nom de la colonne geometrie dans une geodataframe
     """
-    gdf_modif=gdf.rename(columns={gdf.geometry.name : new_name}).set_geometry(new_name)
+    gdf_modif = gdf.rename(columns={gdf.geometry.name : new_name}).set_geometry(new_name)
     return gdf_modif 
 
 

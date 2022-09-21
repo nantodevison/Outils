@@ -6,7 +6,7 @@ Created on 26 avr. 2017
 '''
 
 from datetime import datetime
-from sqlalchemy import create_engine
+import sqlalchemy as sa
 import subprocess, os
 import psycopg2
 import pyodbc
@@ -164,12 +164,12 @@ class ConnexionBdd(object):
         determination des chaines permettant les connexions pour Psycopg2 et Ogr
         creation de l'engine de sqlalchemy
         """
-        if self.typeBdd=='mdb' : 
+        if self.typeBdd == 'mdb': 
             self.connstringMdb = r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};' + f'DBQ={self.fichierMdb};'
         else : 
-            self.connstringPsy="host=%s user=%s password=%s dbname=%s port=%s" %(self.serveur, self.user, self.mdp, self.bdd, self.port)
-            self.connstringOgr="PG: host=%s dbname=%s user=%s password=%s port=%s" %(self.serveur,self.bdd,self.user,self.mdp,self.port)
-            self.engine=create_engine(f'postgresql://{self.user}:{self.mdp}@{self.serveur}:{self.port}/{self.bdd}') 
+            self.connstringPsy = "host=%s user=%s password=%s dbname=%s port=%s" %(self.serveur, self.user, self.mdp, self.bdd, self.port)
+            self.connstringOgr = "PG: host=%s dbname=%s user=%s password=%s port=%s" %(self.serveur,self.bdd,self.user,self.mdp,self.port)
+            self.engine = sa.create_engine(f'postgresql://{self.user}:{self.mdp}@{self.serveur}:{self.port}/{self.bdd}') 
 
     def __enter__(self):
         if self.typeBdd=='mdb' :
