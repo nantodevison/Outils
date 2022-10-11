@@ -422,7 +422,7 @@ def checkAttributNonNull(df, attributs):
         df : dataframe supportant l'attribut
         attribut : list de string
     """
-    if df[attributs].notna().all().all():
+    if not df[attributs].notna().all().all():
         raise ValueError(f" l'une des valeur des attributs '{', '.join(attributs)}' présente des valeurs nulles, alors que l'attribut est non NULL en Bdd")    
         
 def getIndexes(dfObj, value):
