@@ -413,7 +413,17 @@ def checkAttributValues(df, attribut, *valeurs):
     if not all([v in valeurs for v in df[attribut].unique()]) :
         raise ValueError(f" l'une des valeur de l'attribut '{attribut}' n'es pas dans la liste {','.join(valeurs)}")
     else : return True
-      
+    
+    
+def checkAttributNonNull(df, attributs):
+    """
+    vérifier qu'un plusieurs attribut d'une df n'ont pas de valeur nulles
+    in : 
+        df : dataframe supportant l'attribut
+        attribut : list de string
+    """
+    if df[attributs].notna().all().all():
+        raise ValueError(f" l'une des valeur des attributs '{', '.join(attributs)}' présente des valeurs nulles, alors que l'attribut est non NULL en Bdd")    
         
 def getIndexes(dfObj, value):
     ''' Get index positions of value in dataframe i.e. dfObj.'''
