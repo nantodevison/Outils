@@ -40,36 +40,24 @@ def calculGradientVitesseSon(temp, gradientTemp, gradientVitesse, angle):
 def conditionPropagation(gradientCeleriteSon, hauteur=3):
     checkParamValues(hauteur, [3, 6, 10])
     if hauteur <= 4.5:
-        if -0.2 <= gradientCeleriteSon < -0.015:
+        if gradientCeleriteSon < -0.015:
             return "défavorable"
-        elif -0.2 > gradientCeleriteSon:
-            return "très défavorable"
-        elif 0.2 >= gradientCeleriteSon > 0.015:
+        elif gradientCeleriteSon > 0.015:
             return "favorable"
-        elif 0.2 < gradientCeleriteSon :
-            return "très favorable"
         else:
             return "homogene"
     elif hauteur > 8:
-        if -0.1 <= gradientCeleriteSon < -0.007:
+        if gradientCeleriteSon < -0.007:
             return "défavorable"
-        elif -0.1 > gradientCeleriteSon:
-            return "très défavorable"
-        elif 0.1 > gradientCeleriteSon > 0.007:
+        elif gradientCeleriteSon > 0.007:
             return "favorable"
-        elif 0.1 < gradientCeleriteSon :
-            return "très favorable"
         else:
             return "homogene"
     else:
-        if -0.15 <= gradientCeleriteSon < -0.01:
+        if gradientCeleriteSon < -0.01:
             return "défavorable"
-        elif -0.15 > gradientCeleriteSon:
-            return "très défavorable"
-        elif 0.15 > gradientCeleriteSon > 0.01:
+        elif gradientCeleriteSon > 0.01:
             return "favorable"
-        elif 0.15 < gradientCeleriteSon :
-            return "très favorable"
         else:
             return "homogene"
     
