@@ -9,10 +9,12 @@ Module de calcul lie aux donnees meteo
 
 from Outils import checkAttributsinDf, checkParamValues
 from math import  log, cos, sqrt, radians
+from datetime import timedelta, datetime, time
 from statistics import mean
 import pandas as pd
 import numpy as np
 
+#
 listAttributObligatoireDfDonneesCapteur = ['vts_vent_haut', 'vit_vent_bas', 'temp_haut', 'temp_bas', 'date_heure']
 dfAngle = pd.DataFrame({'angle_min':[e for e in range(0, 361, 30)][:-1], 'angle_max':[e for e in range(0, 361, 30)][1:]})
 nomAttrPenteTemp = 'a_t'
@@ -20,6 +22,153 @@ nomAttrPenteVtsVent = 'a_w'
 nomAttrGradVts = 'gradient_vits'
 nomAttrGradTemp = 'gradient_temp'
 coeffConversionCelsiusKelvin = 274.15
+dicoColonneMeteoFrance = {'numer_sta': 'station',
+                          'date': 'date_3heures',
+                          'dd': 'dir_vent_moy_10min',
+                          'ff': 'vit_vent_moy_10min',
+                          't': 'temperature_k',
+                          'u': 'hygrometrie',
+                          'n': 'nebulosite',
+                          'nbas': 'nebulosite_nuage_inferieur',
+                          'rr1': 'pluie_derniere_heure',
+                          'rr3': 'pluie_3_dernieres_heures',
+                          'rr6': 'pluie_6_dernieres_heures',
+                          'rr12': 'pluie_12_dernieres_heures',
+                          'rr24': 'pluie_24_dernieres_heures',}
+numStationMerignac = 7510
+listeColonnesMeteoFrance = [0, 1, 5, 6, 7, 9, 14, 15, 38, 39, 40, 41, 42]
+conditionQualitativeVentFort = [3, 999]
+conditionQualitativeVentMoyen = [1, 3]
+conditionQualitativeVentFaible = [0, 1]
+conditionQualitativeRayonnementFort = [400, 1000000]
+conditionQualitativeRayonnementMoyen = [40, 400]
+conditionQualitativeRayonnementFaible = [0, 40]
+conditionQualitativeCouvNuageuseNuageux = [3, 9.01]
+conditionQualitativeCouvNuageuseDegage = [0, 2.99]
+dicoSecteurAngulaire = {'portant': ((330, 360.01), (0, 30)),
+                        'peu portant': ((30, 70), (290, 330)),
+                        'travers': ((70, 110), (250, 290)),
+                        'peu contraire': ((110, 150), (210, 250)),
+                        'contraire': ((150, 210), )}
+
+
+def calculCategorieVentQualitatif(angleSourceRecepteur, angleVent):
+    """
+    calculer les conditions aérodynamiques selon la méthode qualitative
+    angle source réceptuer : integer, angle entre le  source et le recepeteur, en degré dans un repère avec 0 au Nord
+    angle source réceptuer : integer, orientation du vent, en dégré, dans un repère avec 0 au Nord
+    vitesseVent : integer : en m/s
+    """
+    if not (0 <= angleSourceRecepteur <=360) or not (0 <= angleVent <=360):
+        raise ValueError(f"la valeur de d'angle de source recepteur {angleSourceRecepteur} et / ou de vent {angleVent} doit ête telle que 0 <= angle <= 360")
+    angleAbsolu = abs(angleSourceRecepteur - angleVent)
+    for k, v in dicoSecteurAngulaire.items():
+        if any(c[0] <= angleAbsolu < c[1] for c in v): 
+            return k
+    return
+
+
+def calculForceVentQualitatif(vitesseVent):
+    """
+    renvoyer le type de vitesse du vent en fonction d'uen valeur
+    vitesseVent : float en m/s
+    """
+    if conditionQualitativeVentFaible[0] <= vitesseVent < conditionQualitativeVentFaible[1]:
+        return 'faible'
+    elif conditionQualitativeVentMoyen[0] <= vitesseVent < conditionQualitativeVentMoyen[1]:
+        return 'moyen'
+    elif conditionQualitativeVentFort[0] <= vitesseVent < conditionQualitativeVentFort[1]:
+        return 'fort'
+    else:
+        raise ValueError("la valeur de vitesse de vent doit etre compise entre 0 et 999 m/s")
+
+
+def calculForceRayonnementQualitatif(Rayonnement):
+    """
+    vitesseVent : float en m/s
+    """
+    if conditionQualitativeRayonnementFaible[0] <= Rayonnement < conditionQualitativeRayonnementFaible[1]:
+        return 'faible'
+    elif conditionQualitativeRayonnementMoyen[0] <= Rayonnement < conditionQualitativeRayonnementMoyen[1]:
+        return 'moyen'
+    elif conditionQualitativeRayonnementFort[0] <= Rayonnement < conditionQualitativeRayonnementFort[1]:
+        return 'fort'
+    else:
+        raise ValueError("la valeur de vitesse de rayoonement doit etre compise entre 0 et 999999")
+    
+def calculCouvNuageuseQualitatif(CouvNuageuse):
+    """
+    CouvNuageuse : float ou int en octa
+    """
+    if conditionQualitativeCouvNuageuseDegage[0] <= CouvNuageuse < conditionQualitativeCouvNuageuseDegage[1]:
+        return 'degage'
+    elif conditionQualitativeCouvNuageuseNuageux[0] <= CouvNuageuse < conditionQualitativeCouvNuageuseNuageux[1]:
+        return 'nuageux'
+    else:
+        raise ValueError("la valeur de couverture nuageuse doit etre compise entre 0 et 9 octa")
+    
+    
+def calculPeriodeQualitatif(heureLeverSoleil, heureCoucherSoleil, heure):
+    """
+    fournir le type de période selon l'heure de considérée
+    in:
+        heureLeverSoleil : datetime.datetime sur 24h
+        heureCoucherSoleil : datetime.datetime sur 24h
+        heure : datetime.datetime sur 24h
+    """
+    if heure <= heureLeverSoleil - timedelta(hours=1) or (heure >= heureCoucherSoleil + timedelta(hours=1)):
+        return 'nuit'
+    elif heure >= heureLeverSoleil + timedelta(hours=1) and (heure <= heureCoucherSoleil - timedelta(hours=1)):
+        return 'jour'
+    elif heureLeverSoleil - timedelta(hours=1) < heure < heureLeverSoleil - timedelta(hours=1):
+        return 'aube'
+    else:
+        return 'crepuscule'
+    
+    
+def calculConditionPropagationMeteoFranceQualitatif(dfMeteoFrance, angleSourceRecepteur, tupleLeverSoleil, tupleCoucherSoleil):
+    """
+    creer les attributsde propagatiçon qualitatif sur une df issue de 
+    https://donneespubliques.meteofrance.fr/?fond=produit&id_produit=90&id_rubrique=32
+    renvoi une nouvelle df
+    in : 
+        dfMeteoFrance : datafranme qui doit contenir les attributs de dicoColonneMeteoFrance
+        angleSourceRecepteur : integer : angle entre la source et le receptuer, dans un repere avec 0 au Nord
+        tupleLeverSoleil : tuple de 2 integer représentant les heures et minutes de lever de soleil
+        tupleCoucherSoleil : tuple de 2 integer représentant les heures et minutes de coucher de soleil
+    """
+    checkAttributsinDf(dfMeteoFrance, [c for c in dicoColonneMeteoFrance.values()] + ['vitesseHauteurPerso'])
+    dfMeteoFranceAttr = dfMeteoFrance.assign(
+    forceVent=dfMeteoFrance.vitesseHauteurPerso.apply(lambda x: calculForceVentQualitatif(x)),
+    categorieVent=dfMeteoFrance.dir_vent_moy_10min.apply(lambda x: calculCategorieVentQualitatif(angleSourceRecepteur, x)),
+    typeSol=dfMeteoFrance.pluie_24_dernieres_heures.apply(lambda x: 'humide' if x > 4 else 'sec'),
+    typeRayonnement=dfMeteoFrance.nebulosite_nuage_inferieur.apply(lambda x: 'moyen' if x >= 3 else 'fort'),
+    typeNuage=dfMeteoFrance.nebulosite_nuage_inferieur.apply(lambda x: calculCouvNuageuseQualitatif(x) if not
+                                                             pd.isnull(x) else 'degage'),
+    periode=dfMeteoFrance.date_3heures.apply(lambda x: calculPeriodeQualitatif(datetime.combine(x.date(), time(*tupleLeverSoleil)),
+                                                                               datetime.combine(x.date(), time(*tupleCoucherSoleil)),
+                                                                               x)))
+    dfMeteoFranceAttr = dfMeteoFranceAttr.assign(
+        Ui=dfMeteoFranceAttr.apply(
+            lambda x: DonneesMeteoQualitatif(x.forceVent, x.categorieVent, x.typeSol, x.typeRayonnement, x.typeNuage, x.periode).Ui, axis=1),
+        Ti=dfMeteoFranceAttr.apply(
+            lambda x: DonneesMeteoQualitatif(x.forceVent, x.categorieVent, x.typeSol, x.typeRayonnement, x.typeNuage, x.periode).Ti, axis=1),
+        ConditionPropagation=dfMeteoFranceAttr.apply(
+            lambda x: DonneesMeteoQualitatif(x.forceVent, x.categorieVent, x.typeSol, x.typeRayonnement, x.typeNuage, x.periode).UiTi, axis=1))
+    return dfMeteoFranceAttr
+
+
+def correctionVitesseVentMeteoFrance(vitesse10m, hauteurCible, z0=0.01):
+    """
+    correction de la vitesse du vent issu d'un mat météoFrance
+    in : 
+        vitesse10m : float, issu des données MF
+        hauteurCible : integer > 0 
+        z0 : float
+    """
+    if hauteurCible < 0:
+        raise ValueError('la hauteur cible doit être supérieure ou égale à 0')
+    return vitesse10m * ((log(hauteurCible/z0))/(log(10/z0)))
 
 
 def calculGradientVitesseSon(temp, gradientTemp, gradientVitesse, angle):
@@ -41,25 +190,119 @@ def conditionPropagation(gradientCeleriteSon, hauteur=3):
     checkParamValues(hauteur, [3, 6, 10])
     if hauteur <= 4.5:
         if gradientCeleriteSon < -0.015:
-            return "défavorable"
+            return "defavorable"
         elif gradientCeleriteSon > 0.015:
             return "favorable"
         else:
             return "homogene"
     elif hauteur > 8:
         if gradientCeleriteSon < -0.007:
-            return "défavorable"
+            return "defavorable"
         elif gradientCeleriteSon > 0.007:
             return "favorable"
         else:
             return "homogene"
     else:
         if gradientCeleriteSon < -0.01:
-            return "défavorable"
+            return "defavorable"
         elif gradientCeleriteSon > 0.01:
             return "favorable"
         else:
             return "homogene"
+
+
+class DonneesMeteoQualitatif:
+    """
+    qualification des conditions de propagations du son selon des critères qualitatif
+    """
+
+
+    def __init__(self, typeVent, categorieVent, typeSol, typeRayonnement, typeNuage, periode):
+        """
+        attributs: 
+            typeVent : string parmi 'fort', 'moyen', 'faible'
+            categorieVent : string parmi 'contraire', 'peu contraire', 'travers', 'peu portant', 'portant'
+            typeSol : tsring parmi 'humide' ou 'sec'
+            typeRayonnement : string parmi 'fort', 'moyen', 'faible'
+            typeNuage : string parmi nuageux, dégagé
+            periode : string parmi 'jour', 'nuit'
+        """
+        checkParamValues(typeVent, ['fort', 'moyen', 'faible'])
+        checkParamValues(categorieVent, ['contraire', 'peu contraire', 'travers', 'peu portant', 'portant'])
+        checkParamValues(typeSol, ['humide', 'sec'])
+        checkParamValues(typeRayonnement, ['fort', 'moyen', 'faible'])
+        checkParamValues(typeNuage, ['nuageux', 'degage'])
+        checkParamValues(periode, ['jour', 'nuit', 'aube', 'crepuscule'])
+        self.Ui = self.calculUi(typeVent, categorieVent)
+        self.Ti = self.calculTi( periode, typeRayonnement, typeNuage, typeSol, typeVent)
+        self.UiTi = self.calculUiTi(self.Ui, self.Ti)
+    
+    def calculUi(self, typeVent, categorieVent):
+        """
+        déterination des condiction aérodynamiques
+        """
+        if typeVent == 'fort' and categorieVent == 'contraire':
+            return 'U1'
+        elif (typeVent in ('fort', 'moyen') and categorieVent == 'peu contraire' or 
+              typeVent == 'moyen' and categorieVent == 'peu contraire'):
+            return 'U2'
+        elif categorieVent == 'travers' or typeVent == 'faible':
+            return 'U3'
+        elif (typeVent in ('fort', 'moyen') and categorieVent == 'peu portant' or 
+              typeVent == 'moyen' and categorieVent == 'portant'):
+            return 'U4'
+        else:
+            return 'U5' 
+        
+        
+    def calculTi(self, periode, typeRayonnement, typeNuage, typeSol, typeVent):
+        """
+        détermination des coditions thermiques
+        """
+        if periode == 'jour' : 
+            if typeRayonnement == 'fort':
+                if typeSol == 'sec' and typeVent in ('faible', 'moyen'):
+                    return 'T1'
+                elif (typeSol == 'sec' and typeVent == 'fort') or typeSol == 'humide':
+                    return 'T2'
+                else:
+                    raise NotImplementedError(" le cas de conditions n'est pas implémenté dans la norme et le code")
+            else:
+                if typeSol == 'sec':
+                    return 'T2'
+                else:
+                    if typeVent in ('faible', 'moyen'):
+                        return 'T2'
+                    else:
+                        return 'T3'
+        elif periode in ('aube', 'crepuscule'):
+            return 'T3'
+        else:
+            if typeNuage == 'nuageux':
+                return 'T4'
+            else:
+                if typeVent in ('moyen', 'fort'):
+                    return 'T4'
+                else:
+                    return 'T5'
+                
+                
+    def calculUiTi(self, Ui, Ti):
+        """
+        detremination des conditions de propagation
+        """
+        checkParamValues(Ui, ['U1', 'U2', 'U3', 'U4', 'U5'])
+        checkParamValues(Ti, ['T1', 'T2', 'T3', 'T4', 'T5'])
+        if (Ui == 'U2' and Ti == 'T1') or (Ui == 'U1' and Ti == 'T2'):
+            return 'defavorable'
+        elif (Ti == 'T1') or (Ui == 'U1') or (Ui == 'U2' and Ti in ('T2, T3')) or (Ui == 'U3' and Ti in ('T1, T2')):
+            return 'defavorable'
+        elif (Ui == 'U4' and Ti == 'T2') or (Ui == 'U3' and Ti == 'T3') or (Ui == 'U2' and Ti == 'T4'):
+            return 'homogene'
+        elif (Ti == 'T3') or (Ui == 'U3') or (Ui == 'U5' and Ti in ('T2, T3')) or (Ui == 'U3' and Ti in ('T4, T5')):
+            return 'favorable'
+        else:
+            return 'favorable'
     
 
 class DonneesMeteo(object):
@@ -74,11 +317,10 @@ class DonneesMeteo(object):
         hauteurHaut : hauteur des capteurs haut
         pasAgregTemporel : integer : pas d'agregation des données mesurées en minutes
         dateHeureDeb : string : date et heure de début à prendre en comte, format YYYY-mm-dd HH:MM:SS
-        a_w : pente de la variation de vitesse du vent selon la hauteur
-        a_t : pente de la variation de température selon la hauteur
+        hauteurEval : hauteur d'évaluation du gradient de célérité du son
     """
     
-    def __init__(self, dfCapteurs, hauteurBas, hauteurHaut, pasAgregTemporel, dateHeureDeb):
+    def __init__(self, dfCapteurs, hauteurBas, hauteurHaut, pasAgregTemporel, dateHeureDeb, hauteurEval):
         """
         vérfication initiale des données
         """
@@ -88,8 +330,13 @@ class DonneesMeteo(object):
         self.hauteurHaut = hauteurHaut
         self.pasAgregTemporel = pasAgregTemporel
         self.dateHeureDeb = dateHeureDeb
+        self.hauteurEval = hauteurEval
         self.ajoutTempKelvin(self.dfCapteurs)
         self.dfPente = self.calculPente(self.moyennerTemporelDfCapteur())
+        self.dfGradient = self.calculGradient(self.dfPente, self.hauteurEval)
+        self.dfAngleGradient = self.analyseAngulaire(self.dfGradient)
+        self.dfAngleGradient['ConditionPropagation'] = self.dfAngleGradient.grad_moy.apply(lambda x: conditionPropagation(x, hauteur=self.hauteurEval))
+        
         
         
     def ajoutTempKelvin(self, df):
@@ -102,8 +349,11 @@ class DonneesMeteo(object):
         """
         agregation temporalle des donnees sources
         """ 
-        return self.dfCapteurs.set_index('date_heure').resample(f'{self.pasAgregTemporel}T',
-                                                                origin=self.dateHeureDeb).mean().reset_index()
+        return self.dfCapteurs.set_index('date_heure').resample(
+            f'{self.pasAgregTemporel}T', origin=self.dateHeureDeb).agg(
+                {'vts_vent_haut': 'mean', 'vit_vent_bas': 'mean', 'temp_haut': 'mean', 'temp_bas': 'mean', 'temp_haut_k': 'mean', 
+                 'temp_bas_k': 'mean', 'dir_vent_haut': 'mean', 'dir_vent_bas': 'mean', 'hygro_haut': 'mean', 'hygro_bas': 'mean', 'rayonnement': 'mean', 
+                 'pluie': 'sum'}).reset_index()
         
     
     def calculPente(self, df):
@@ -157,8 +407,5 @@ class DonneesMeteo(object):
                                                                                                mean([x.angle_max, x.angle_min]))
         , axis=1)   
         return dfAngleGradient
-        
-        
-    
         
         

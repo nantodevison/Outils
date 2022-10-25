@@ -378,7 +378,7 @@ def checkAttributsinDf(df, attributs):
         df : dataframe a tester
         attributs : strin ou list de string
     """    
-    if isinstance(attributs, str) : 
+    if isinstance(attributs, str): 
         if not attributs in df.columns : 
             raise AttributeError(f"l'attribut {attributs} n'est pas present dans la df ")
         else :
@@ -388,7 +388,7 @@ def checkAttributsinDf(df, attributs):
             raise AttributeError(f"les attribut {','.join([e for e in attributs if e not in df.columns])} doivent etre presents dans la df ")
         else : return True
     else : 
-        raise TypeError('le parametre attributs doit etre une string ou list de string')
+        raise TypeError('le parametre attributs doit etre une string ou list de string ou dict_values')
  
  
 def checkParamValues(variable, values):
