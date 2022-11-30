@@ -3,5 +3,7 @@ encoding//Martin_Perso/Bruit/Emission.py=utf-8
 encoding//Martin_Perso/Bruit/Meteo.py=utf-8
 encoding//Martin_Perso/Bruit/Niveaux.py=utf-8
 encoding//Martin_Perso/Connexion_Transfert.py=utf-8
+encoding//Martin_Perso/Impots/Calcul_Impots.py=utf-8
+encoding//Martin_Perso/Impots/Params.py=utf-8
 encoding//Martin_Perso/Outils.py=utf-8
 encoding//Martin_Perso/Tests/Tests_Connexion_Transfert.py=utf-8
