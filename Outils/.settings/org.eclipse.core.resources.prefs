@@ -1,9 +1,10 @@
 eclipse.preferences.version=1
-encoding//Bruit/Emission.py=utf-8
-encoding//Bruit/Meteo.py=utf-8
-encoding//Bruit/Niveaux.py=utf-8
-encoding//Connexions/Connexion_Transfert.py=utf-8
-encoding//Impots/Calcul_Impots.py=utf-8
-encoding//Impots/Params.py=utf-8
 encoding//Tests/Tests_Connexion_Transfert.py=utf-8
-encoding/Outils.py=utf-8
+encoding//src/Bruit/Emission.py=utf-8
+encoding//src/Bruit/Meteo.py=utf-8
+encoding//src/Bruit/Niveaux.py=utf-8
+encoding//src/Connexions/Connexion_Transfert.py=utf-8
+encoding//src/Impots/Calcul_Impots.py=utf-8
+encoding//src/Impots/Params.py=utf-8
+encoding//src/Outils/Outils.py=utf-8
+encoding//src/Trafic/Trafic_Routier.py=utf-8

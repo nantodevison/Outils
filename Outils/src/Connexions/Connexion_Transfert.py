@@ -20,7 +20,7 @@ from shapely.geometry import Point
 
 #fonction d'ouverture du fichier de parametres
 def ouvrirFichierParametre(typeParametres):
-    chemin=r'C:\Users\martin.schoreisz\git\Outils\Outils\Martin_Perso\Id_connexions'
+    chemin=r'C:\Users\martin.schoreisz\git\Outils\Outils\src\Connexions\Id_connexions'
     with open(chemin,'r') as f_id :
         dicoParametres={}
         for texte in f_id :

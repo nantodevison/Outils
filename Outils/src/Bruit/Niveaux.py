@@ -6,7 +6,7 @@ Created on 25 mai 2022
 module de manipulation des niveaux de bruit
 '''
 from math import log10, sqrt
-from Outils import checkParamValues, checkAttributsinDf
+from Outils.Outils import checkParamValues, checkAttributsinDf
 import pandas as pd
 
 pRef = 20*pow(10,-6) 
