@@ -13,6 +13,7 @@ from datetime import timedelta, datetime, time
 from statistics import mean
 import pandas as pd
 import numpy as np
+import altair as alt
 
 #
 listAttributObligatoireDfDonneesCapteur = ['vts_vent_haut', 'vit_vent_bas', 'temp_haut', 'temp_bas', 'date_heure']
@@ -209,6 +210,27 @@ def conditionPropagation(gradientCeleriteSon, hauteur=3):
             return "favorable"
         else:
             return "homogene"
+        
+        
+def forcePropagation(gradientCeleriteSon, seuilFaible=0.2, seuilMoyen=0.4):
+    """
+    remplacer la valeur numérique 'un gradeint par une valeur textuelle
+    in : 
+        gradientCeleriteSon : float : le gradeint calculé,
+        seuilFaible : float : le seuil maxi en dessous duquel la force de propagation est jugée faible. default = 0.2
+        seuilMoyen : float : le seuil maxi en dessous duquel la force de propagation est jugée moyenne (avec un seuil bas la valeur de seuilFaible
+                             .default = 0.4
+    out :
+        valTest : float : valeur absolue du gradient de célérité
+        : string parmi 'faible', 'moyenne', 'forte'
+    """ 
+    valTest = abs(gradientCeleriteSon)  
+    if valTest <= 0.2: 
+        return valTest, 'faible'
+    elif 0.2 < valTest <= 0.4:
+        return valTest, 'moyenne'
+    else:
+        return valTest, 'forte'
 
 
 class DonneesMeteoQualitatif:
@@ -303,6 +325,31 @@ class DonneesMeteoQualitatif:
             return 'favorable'
         else:
             return 'favorable'
+        
+ 
+def graphCompTempMesureeHautBas(dfMeteo, largeur=500, hauteur=300): 
+    """
+    produire un graph avec slider de choix de adte permettant de visualiser les tempértaure haute et basse d'un mât
+    in : 
+        dfMeteo
+    """      
+    checkAttributsinDf(dfMeteo, ['temp_bas', 'temp_haut', 'date_heure'])
+    dfMeteoCompTemp = dfMeteo.assign(jour=dfMeteo.date_heure.dt.dayofyear,
+                                     heure_minute=dfMeteo.date_heure.apply(lambda x: f"{x.strftime('%H:%M')}"))
+    titre = alt.TitleParams(["Température selon le point de mesure", "et l'heure de la journée"],
+                            align='center', anchor='middle', fontSize=20)
+    slider = alt.binding_range(min=80, max=109, step=1)
+    select_day = alt.selection_single(name="jour", fields=['jour'],
+                                      bind=slider, init={'jour': 80})
+    return (alt.Chart(dfMeteoCompTemp, width=largeur, height=hauteur, title=titre).transform_fold(
+                ['temp_bas', 'temp_haut']).mark_line().encode(
+                x=alt.X('heure_minute', title='Heure', axis=alt.Axis(labelOverlap=True)),
+                y=alt.Y('value:Q', scale=alt.Scale(zero=False), title='Température (°C)', ),
+                color=alt.Color('key:N', legend=alt.Legend(title=None, orient="top-left")))
+                 .add_selection(select_day)
+                 .transform_filter(select_day)
+                 .configure_legend(titleFontSize=13, labelFontSize=12)
+                 .configure_axis(labelFontSize=13, titleFontSize=12)) 
     
 
 class DonneesMeteo(object):
@@ -407,5 +454,36 @@ class DonneesMeteo(object):
                                                                                                mean([x.angle_max, x.angle_min]))
         , axis=1)   
         return dfAngleGradient
+    
+    
+    def propagationSourceRecepteurRiverain(self, dfAngleGradient, *anglesSourcesRecepteurs):
+        """
+        fonction permettantg de limiter le résultats de dfAngleGradient seloj les angles sources recepteurs spécifiés.
+        ATTENTION : le sens du mot "favaorable et défavorbale est inversé : on est du pount de vue Riverains : favorable à la 
+        propagation = défavorable au riverain
+        in : 
+            dfAngleGradient : df issue de analyseAngulaire()
+            AnglesSourcesRecepteurs : integers : les angles sources recepteurs à considérer
+        out : 
+            dfMeteo : df issue de dfAngleGradient ne conservant que les lignes avec un angle de propagation compris danns anglesSourcesRecepteurs
+                      et ne fournissant que le gradient de célérité du son le plus élevé entre les possibles plusieusr valeurs
+        """
+        if len(anglesSourcesRecepteurs) == 1 :
+            dfAnglesOrienteRecepteurs = dfAngleGradient.loc[
+                (dfAngleGradient.apply(lambda x: x.angle_min <= abs(x.dir_vent_haut - anglesSourcesRecepteurs[0]) <= x.angle_max, axis=1))
+                                                            ].copy().replace({'ConditionPropagation': 
+                                                                              {'favorable': 'defavorable', 'defavorable': 'favorable'}})
+        elif len(anglesSourcesRecepteurs) == 2 : 
+            dfAnglesOrienteRecepteurs = dfAngleGradient.loc[
+                (dfAngleGradient.apply(lambda x: x.angle_min <= abs(x.dir_vent_haut - anglesSourcesRecepteurs[0]) <= x.angle_max, axis=1)) |
+                (dfAngleGradient.apply(lambda x: x.angle_min <= abs(x.dir_vent_haut - anglesSourcesRecepteurs[1]) <= x.angle_max, axis=1))
+                                                            ].copy().replace({'ConditionPropagation': 
+                                                                              {'favorable': 'defavorable', 'defavorable': 'favorable'}})
+        else : 
+            raise NotImplementedError("le nombre d'angle maxi pris en charge par le code est 2")
+        dfMeteo = dfAnglesOrienteRecepteurs.loc[dfAnglesOrienteRecepteurs.grad_moy == dfAnglesOrienteRecepteurs.groupby('date_heure')['grad_moy'].
+                                        transform('max')].drop_duplicates(['date_heure', 'grad_moy'])
+        dfMeteo[['forcePropagation_num', 'forcePropagation_txt']] = dfMeteo.grad_moy.apply(lambda x: pd.Series(forcePropagation(x)))
+        return dfMeteo
         
         
