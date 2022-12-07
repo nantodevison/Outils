@@ -415,6 +415,18 @@ def checkAttributValues(df, attribut, *valeurs):
     else : return True
     
     
+def checkListValues(liste, valeurs):
+    """
+    vérifier qu'une liste n'a que des valeurs comprise dans une liste de ref (comportement FK)
+    in : 
+        liste : une liste
+        valeurs : uen liste de valeurs acceptees
+    """
+    if any([e for e in liste if e not in valeurs]) :
+        raise ValueError(f" l'une des valeur de la liste {liste}' n'es pas dans la liste {','.join(valeurs)}")
+    return
+    
+    
 def checkAttributNonNull(df, attributs):
     """
     vérifier qu'un plusieurs attribut d'une df n'ont pas de valeur nulles
