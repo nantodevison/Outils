@@ -536,6 +536,12 @@ def regrouperLigneDfValeurNonNulle(df, privilegeType='derniere'):
             return listePossible[-1]
         elif privilegeType == 'premiere':
             return listePossible[0]
+        
+def dateTexteDepuisDayOfYear(dayOfYear):
+    """
+    depuis un integer dayofyear, renvoyer une date sous forme Lundi 4 novembre par exemple
+    """
+    return datetime.strptime('2022' + '-' + str(dayOfYear).rjust(3 , '0'), '%Y-%j').strftime('%A %d %B %Y')
     
     
         
