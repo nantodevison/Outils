@@ -13,6 +13,20 @@ pRef = 20*pow(10,-6)
 sourceTypeAgregTemporalleList = ['pression', 'leq_a']
 
 
+def sommeEnergetique(l1,l2):
+    """
+    faire la somme energetique de deux niveaux de puissance
+    """
+    if l1 == 0 and l2 == 0:
+        return 0
+    elif l1 == 0 and l2 != 0:
+        return l2
+    elif l1 != 0 and l2 == 0:
+        return l1
+    else:
+        return 10*log10(pow(10,l1/10)+pow(10,l2/10))
+
+
 def calculLden(laeq618, laeq1822, laeq226):
     """
     calculé le Lden a partirdes niveaux moyen sur les periodes reglementaires

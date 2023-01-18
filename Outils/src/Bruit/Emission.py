@@ -8,25 +8,14 @@ Module de calcul des emissions de bruit selon la norme NFS31-133
 
 import math
 import pandas as pd
+from Bruit.Niveaux import sommeEnergetique
 
-def sommeEnergetique(l1,l2):
-    """
-    faire la somme energetique de deux niveaux de puissance
-    """
-    if l1 == 0 and l2 == 0:
-        return 0
-    elif l1 == 0 and l2 != 0:
-        return l2
-    elif l1 != 0 and l2 == 0:
-        return l1
-    else:
-        return 10*math.log10(pow(10,l1/10)+pow(10,l2/10))
 
 def testValiditeVts(vtsVl, vtsPl):
     if vtsVl<20 or vtsVl>130: 
-        raise ValueError("la vitesse vl doit etre entre 20 et 130 km/h")
+        raise EmissionVitesseError(vtsVl)
     if vtsPl<20 or vtsPl>100: 
-        raise ValueError("la vitesse pl doit etre entre 20 et 100 km/h")  
+        raise EmissionVitesseError(vtsPl)
     
 def testValiditeRevt(categorieRevt):
     if categorieRevt not in ('r1', 'r2', 'r3') : 
@@ -45,7 +34,8 @@ class Route(object):
     fournir les information de puissance acoustique d'u troncon acoustiquement homogene d'une route 
     """
     
-    def __init__(self,debitVl, debitPl, vtsVl, vtsPl,categorieRevt='r2',ageRevt=10,allure='s',declivite=0, drainant=False):
+    def __init__(self,debitVl, debitPl, vtsVl, vtsPl,categorieRevt='r2',ageRevt=10,allure='s',declivite=0, drainant=False,
+                 ignoreErreurVts=False):
         """
         attributs a fournir : 
             categorieRevt : string : r1 ou r2 ou r3,
@@ -57,6 +47,7 @@ class Route(object):
             debitPl : integer >0 ,
             allure : string  : 's' ou 'a' ou 'd' defaut='s', 
             drainant : booleen defaut=false
+            ignoreErreurVts : booleen : si true l'erreur de dmaine de vitesse est ignoree
         attributs calcule : 
             lrwmVl : composante roulement vehicule unitaire VL
             lmwmVl : composante moteur vehicule unitaire VL
@@ -70,7 +61,8 @@ class Route(object):
             dfCorrecTierOctave : df des corrections tiers d'octave pour calcul de spectre
             spectre : df de repartition spectrale (sur demande via repartitionSpectrale())
         """
-        testValiditeVts(vtsVl, vtsPl)
+        if not ignoreErreurVts:
+            testValiditeVts(vtsVl, vtsPl)
         testValiditeRevt(categorieRevt)
         testValiditeAllure(allure)
         testDeclivite(declivite)
@@ -225,7 +217,12 @@ class Route(object):
             self.spectre=self.lwm+self.dfCorrecTierOctave.loc[self.dfCorrecTierOctave.typeRvt!='drainant'].correction
         
 
-
+class EmissionVitesseError(Exception):
+        """
+        Exception levee si la vitesse n'est pas entre 20 et 130 pour les VL et 20 et 100 pour les pl
+        """     
+        def __init__(self, vitesse):
+            Exception.__init__(self, f"la vitesse {vitesse} n'est pas entre 20 et 130 pour un VL ou 20 et 100 pour un PL")
 
     
     
