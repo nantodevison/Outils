@@ -415,6 +415,19 @@ def checkAttributValues(df, attribut, *valeurs):
     else : return True
     
     
+def checkValuesInAttribut(df, attribut, *valeurs):
+    """
+    vérifier que des valeurs sont bien présentes dans un attribits de df
+    in : 
+        df : dataframe supportant l'attribut
+        attribut : string : nom de l'attribut
+        valeurs : les valeurs acceptees
+    """
+    if not all([v in df[attribut].unique() for v in valeurs]) :
+        raise ValueError(f" l'une des valeur de la liste {','.join(valeurs)} n'es pas dans l'attribut '{attribut}'")
+    else : return True 
+    
+    
 def checkListValues(liste, valeurs):
     """
     vérifier qu'une liste n'a que des valeurs comprise dans une liste de ref (comportement FK)

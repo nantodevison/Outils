@@ -5,7 +5,7 @@ Created on 5 oct. 2021
 '''
 import unittest
 import pandas as pd
-import Outils as O
+from Outils.Outils import checkAttributsinDf, checkAttributValues, checkValuesInAttribut
 
 
 class TestOutils(unittest.TestCase):
@@ -13,32 +13,47 @@ class TestOutils(unittest.TestCase):
 
     def test_checkAttributsinDf_str(self):
         df=pd.DataFrame({'toto':[1,2,3], 'tata':[1,2,3]})
-        self.assertTrue(O.checkAttributsinDf(df, 'tata'))
+        self.assertTrue(checkAttributsinDf(df, 'tata'))
+        
         
     def test_checkAttributsinDf_strList(self):
         df=pd.DataFrame({'toto':[1,2,3], 'tata':[1,2,3]})
-        self.assertTrue(O.checkAttributsinDf(df, ['toto', 'tata']))
+        self.assertTrue(checkAttributsinDf(df, ['toto', 'tata']))
+        
         
     def test_checkAttributsinDf_ListAttrNotIn(self):
         df=pd.DataFrame({'toto':[1,2,3], 'tata':[1,2,3]})
-        self.assertRaises(AttributeError, O.checkAttributsinDf, df, ['titi', 'tutu'])   
+        self.assertRaises(AttributeError, checkAttributsinDf, df, ['titi', 'tutu'])   
+        
         
     def test_checkAttributsinDf_AttrNotIn(self):
         df=pd.DataFrame({'toto':[1,2,3], 'tata':[1,2,3]})
-        self.assertRaises(AttributeError, O.checkAttributsinDf, df, 'titi') 
+        self.assertRaises(AttributeError, checkAttributsinDf, df, 'titi') 
+        
         
     def test_checkAttributsinDf_TypeAttrFail(self):
         df=pd.DataFrame({'toto':[1,2,3], 'tata':[1,2,3]})
-        self.assertRaises(TypeError, O.checkAttributsinDf, df, 123)
+        self.assertRaises(TypeError, checkAttributsinDf, df, 123)
+        
         
     def test_checkAttributValues_ok(self):
         df=pd.DataFrame({'attr':['toto', 'tata']})
-        self.assertTrue(O.checkAttributValues(df, 'attr', 'toto', 'tata'))
+        self.assertTrue(checkAttributValues(df, 'attr', 'toto', 'tata'))
+        
         
     def test_checkAttributValues_ko(self):
         df=pd.DataFrame({'attr':['toto', 'tata']})
-        self.assertRaises(ValueError,O.checkAttributValues,df, 'attr', 'titi', 'tata')
+        self.assertRaises(ValueError,checkAttributValues,df, 'attr', 'titi', 'tata')
 
+
+    def test_checkValuesInAttribut_ok(self):
+        df=pd.DataFrame({'attr':['toto', 'tata']})
+        self.assertTrue(checkAttributValues(df, 'attr', 'toto', 'tata'))
+        
+        
+    def test_checkValuesInAttribut_ko(self):
+        df=pd.DataFrame({'attr':['toto', 'tata']})
+        self.assertRaises(ValueError,checkAttributValues,df, 'attr', 'titi', 'tata')
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']
