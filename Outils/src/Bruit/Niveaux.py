@@ -13,18 +13,14 @@ pRef = 20*pow(10,-6)
 sourceTypeAgregTemporalleList = ['pression', 'leq_a']
 
 
-def sommeEnergetique(l1,l2):
+def sommeEnergetique(*l):
     """
     faire la somme energetique de deux niveaux de puissance
     """
-    if l1 == 0 and l2 == 0:
+    if all([lx == 0 or pd.isnull(lx) for lx in l]):
         return 0
-    elif l1 == 0 and l2 != 0:
-        return l2
-    elif l1 != 0 and l2 == 0:
-        return l1
     else:
-        return 10*log10(pow(10,l1/10)+pow(10,l2/10))
+        return 10 * log10(sum([pow(10, lx/10) for lx in l if lx != 0 and not pd.isnull(lx)]))
 
 
 def calculLden(laeq618, laeq1822, laeq226):
