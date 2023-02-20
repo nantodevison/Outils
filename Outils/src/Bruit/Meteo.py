@@ -51,6 +51,11 @@ dicoSecteurAngulaire = {'portant': ((330, 360.01), (0, 30)),
                         'travers': ((70, 110), (250, 290)),
                         'peu contraire': ((110, 150), (210, 250)),
                         'contraire': ((150, 210), )}
+secteurAngulaireQuantitatif = ((-0.01, 20), (20, 40), (40, 60), (60, 80), (80, 100),
+                                   (100, 120), (120, 140), (140, 160), (160, 180), (180, 200),
+                                   (200, 220), (220, 240), (240, 260), (260, 280), (280, 300),
+                                   (300, 320), (320, 340), (340, 360.01), (360.01, 370), (370, 999))
+
 
 
 def calculCategorieVentQualitatif(angleSourceRecepteur, angleVent):
@@ -365,6 +370,11 @@ class DonneesMeteo(object):
         pasAgregTemporel : integer : pas d'agregation des données mesurées en minutes
         dateHeureDeb : string : date et heure de début à prendre en comte, format YYYY-mm-dd HH:MM:SS
         hauteurEval : hauteur d'évaluation du gradient de célérité du son
+        dfOrientVent : dataframe de répartition des secteur sources de vent
+        chartProvenanceVent : chart angulaire des occurence de source de vent par secteur angulaire
+        dfTxOccurenceConditions : datafrme de répartition des occurence favortable ou défavorable selon un angle source - réceptuer
+        chartOccurenceConditionsSecteur :chart d'occurence des conditions favorable ou défavorable selon un angle source - réceptuer (recepteur
+                                            au milieu de la chart)
     """
     
     def __init__(self, dfCapteurs, hauteurBas, hauteurHaut, pasAgregTemporel, dateHeureDeb, hauteurEval):
@@ -383,7 +393,8 @@ class DonneesMeteo(object):
         self.dfGradient = self.calculGradient(self.dfPente, self.hauteurEval)
         self.dfAngleGradient = self.analyseAngulaire(self.dfGradient)
         self.dfAngleGradient['ConditionPropagation'] = self.dfAngleGradient.grad_moy.apply(lambda x: conditionPropagation(x, hauteur=self.hauteurEval))
-        
+        self.dfOrientVent, self.chartProvenanceVent = self.graphOccurenceOrientationVent()
+        self.dfTxOccurenceConditions, self.chartOccurenceConditionsSecteur = self.graphOccurenceConditionParSecteur()
         
         
     def ajoutTempKelvin(self, df):
@@ -434,7 +445,7 @@ class DonneesMeteo(object):
         return df
     
     
-    def analyseAngulaire(self, dfGradient):
+    def analyseAngulaire(self, dfGradient, dfAngle=dfAngle):
         """
         pour chaque secteur angulaire, fournir le gradient de célérité du son.
         modif sur place
@@ -467,6 +478,7 @@ class DonneesMeteo(object):
         out : 
             dfMeteo : df issue de dfAngleGradient ne conservant que les lignes avec un angle de propagation compris danns anglesSourcesRecepteurs
                       et ne fournissant que le gradient de célérité du son le plus élevé entre les possibles plusieusr valeurs
+           dfAnglesOrienteRecepteurs : df proposant tout les gradients de célérité du son pourchaque secteur anguliare
         """
         if len(anglesSourcesRecepteurs) == 1 :
             dfAnglesOrienteRecepteurs = dfAngleGradient.loc[
@@ -484,6 +496,150 @@ class DonneesMeteo(object):
         dfMeteo = dfAnglesOrienteRecepteurs.loc[dfAnglesOrienteRecepteurs.grad_moy == dfAnglesOrienteRecepteurs.groupby('date_heure')['grad_moy'].
                                         transform('max')].drop_duplicates(['date_heure', 'grad_moy'])
         dfMeteo[['forcePropagation_num', 'forcePropagation_txt']] = dfMeteo.grad_moy.apply(lambda x: pd.Series(forcePropagation(x)))
-        return dfMeteo
+        return dfMeteo, dfAnglesOrienteRecepteurs
+    
+    
+    def graphOccurenceOrientationVent(self, largeur=400, hauteur=200):
+        """
+        creer un graph qui renvoi la répartition de la provenance du vent par secteur angulaire de 20°
+        out : 
+            chart Altair de type mark_arc + mark_text
+        """
+        # preparation des donnees
+        dfTestRoseDesVents =  self.dfAngleGradient.loc[self.dfAngleGradient.dir_vent_haut.notna()].copy()
+        dfTestRoseDesVents['binDirVentHaut'] = pd.cut(dfTestRoseDesVents.dir_vent_haut, sorted([e[0] for e in secteurAngulaireQuantitatif]),
+                                              labels = sorted([e[0] for e in secteurAngulaireQuantitatif if e[0] < 370]))
+        dfOrientVent = round(dfTestRoseDesVents.drop_duplicates('date_heure').groupby("binDirVentHaut")["dir_vent_haut"].count() /
+         len(dfTestRoseDesVents.drop_duplicates('date_heure')),4).reset_index().replace({-0.01: 0}).rename(columns={'dir_vent_haut': 'occurence',
+                                                                                                                        'binDirVentHaut': 'angleVentMin'})
+        dfOrientVent['radiusOccurence'] = dfOrientVent.occurence * 0.95
+        dfOrientVent['angleVentMin'] = dfOrientVent['angleVentMin'].astype(int)
+        dfOrientVent['angleVentMax'] = dfOrientVent.angleVentMin + 20
+        dfOrientVent['radiusText'] = dfOrientVent.occurence * 1.1
+        dfOrientVent['angleVentMinRad'] = dfOrientVent['angleVentMin'].apply(lambda x: radians(x))
+        dfOrientVent['angleVentMaxRad'] = dfOrientVent['angleVentMax'].apply(lambda x: radians(x))
+        dfOrientVent.loc[dfOrientVent.angleVentMin == 0, 'text_legende'] = 'Nord'
+        dfOrientVent.loc[dfOrientVent.angleVentMin == 100, 'text_legende'] = 'Est'
+        dfOrientVent.loc[dfOrientVent.angleVentMin == 180, 'text_legende'] = 'Sud'
+        dfOrientVent.loc[dfOrientVent.angleVentMin == 260, 'text_legende'] = 'Ouest'
+        dfOrientVent['text_legende_radius'] = dfOrientVent.radiusOccurence.max()
+        ligneHoriz = (
+            alt.Chart(pd.DataFrame({'x': (0, 1), 'y': (0, 1)}))
+                .mark_rule(strokeWidth=0.5, strokeDash=[6,4]).encode(x=alt.value(0),
+                                                 x2=alt.value(largeur), 
+                                                 y=alt.value(hauteur/2), 
+                                                 y2=alt.value(hauteur/2)))
+        lignVert = (
+        alt.Chart(pd.DataFrame({'x': (0, 1), 'y': (0, 1)}))
+            .mark_rule(strokeWidth=0.5, strokeDash=[6,4]).encode(x=alt.value(largeur/2),
+                                             x2=alt.value(largeur/2), 
+                                             y=alt.value(0), 
+                                             y2=alt.value(hauteur)))
+        # realisation de la chart
+        titre = alt.TitleParams(["Occurence de direction de provenance du vent par secteur angulaire de 20°"], 
+                                subtitle='En nombre de période de 6 min concernées')
+        base = alt.Chart(dfOrientVent, title=titre).encode(
+            theta='angleVentMinRad:Q',
+            theta2='angleVentMaxRad:Q')
+        values = base.mark_arc(padAngle=0.02).encode(radius=alt.Radius('occurence'), 
+                                                     color=alt.Color("occurence:Q", legend=alt.Legend(format='.0%')))
+        text = alt.Chart(dfOrientVent.loc[dfOrientVent.text_legende.notna()]).mark_text().encode(text='text_legende', 
+                                                                                                 theta='angleVentMinRad',
+                                                                                                 radius='text_legende_radius')
+        chartOrientVent = (values + text + ligneHoriz + lignVert).properties(width=largeur, height=hauteur)
+        return dfOrientVent, chartOrientVent
         
+        
+    def graphOccurenceConditionParSecteur(self, largeur=300, hauteur=200):
+        """
+        un graph pour voir la répartition entre conditions favorable et défavorable à 
+        la propagation selon les différents secteurs angulaire
+        """
+        dfTestRoseDesVents = self.dfGradient.loc[self.dfGradient.dir_vent_haut.notna()].copy()
+        dfTestRoseDesVents = dfTestRoseDesVents.drop(['angle_min', 'angle_max', 'ConditionPropagation',
+                                                       'grad_min', 'grad_moy', 'grad_max'], axis=1, errors='ignore')
+        dfTestRoseDesVents = self.analyseAngulaire(dfTestRoseDesVents,
+                                                    pd.DataFrame(secteurAngulaireQuantitatif).replace(
+                                                        {-0.01: 0, 360.01: 360}).rename(columns={0: 'angle_min', 1: 'angle_max'}))
+        dfTestRoseDesVents['diffAngleVentAngleSourceRecept'] = dfTestRoseDesVents.apply(
+            lambda x: abs(x.dir_vent_haut - (x.angle_max - ((x.angle_max - x.angle_min)/2))), axis=1)
+        dfTestRoseDesVents['gradVtsSon'] = dfTestRoseDesVents.apply(
+            lambda x: calculGradientVitesseSon(x.temp_haut_k, x.gradient_temp, x.gradient_vits, x.diffAngleVentAngleSourceRecept), axis=1)
+        dfTestRoseDesVents['conditionPropagation'] = dfTestRoseDesVents.gradVtsSon.apply(lambda x: conditionPropagation(x))
+        dfTxOccurenceConditions = dfTestRoseDesVents.groupby(['angle_min', 'conditionPropagation']).size().unstack()
+        dfTxOccurenceConditions['nb_event'] = dfTxOccurenceConditions.favorable + dfTxOccurenceConditions.defavorable + dfTxOccurenceConditions.homogene
+        dfTxOccurenceConditions['Défavorable'] = dfTxOccurenceConditions.defavorable / dfTxOccurenceConditions.nb_event
+        dfTxOccurenceConditions['Favorable'] = dfTxOccurenceConditions.favorable / dfTxOccurenceConditions.nb_event
+        dfTxOccurenceConditions['Homogène'] = dfTxOccurenceConditions.homogene / dfTxOccurenceConditions.nb_event
+        dfTxOccurenceConditions.reset_index(inplace=True)
+        dfTxOccurenceConditions['angle_max'] = dfTxOccurenceConditions.angle_min + 20
+        dfTxOccurenceConditions['angle_minRad'] = dfTxOccurenceConditions['angle_min'].apply(lambda x: radians(x))
+        dfTxOccurenceConditions['angle_maxRad'] = dfTxOccurenceConditions['angle_max'].apply(lambda x: radians(x))
+        dfTxOccurenceConditions = dfTxOccurenceConditions.melt(
+            id_vars=['angle_min', 'angle_minRad', 'angle_maxRad'], value_vars=['Défavorable', 'Favorable', 'Homogène'], var_name='Conditions de propagation', value_name='Occurence')
+        dfTxOccurenceConditions['radius2'] = dfTxOccurenceConditions.Occurence-0.01
+        dfTxOccurenceConditions.loc[dfTxOccurenceConditions.angle_min == 0, 'text_legende'] = 'Nord'
+        dfTxOccurenceConditions.loc[dfTxOccurenceConditions.angle_min == 80, 'text_legende'] = 'Est'
+        dfTxOccurenceConditions.loc[dfTxOccurenceConditions.angle_min == 180, 'text_legende'] = 'Sud'
+        dfTxOccurenceConditions.loc[dfTxOccurenceConditions.angle_min == 260, 'text_legende'] = 'Ouest'
+        dfTxOccurenceConditions.loc[dfTxOccurenceConditions.angle_min==360, ['Occurence', 'radius2']] = 0
+        base = alt.Chart(dfTxOccurenceConditions.loc[dfTxOccurenceConditions.angle_min < 361], 
+                         height= hauteur, width=largeur, title=["Répartition des occurences de conditions favorable ou défavorable",
+                                                                "selon l'orientation source - récepteur (au centre de la rose)"]).mark_arc(padAngle=0.02).encode(
+            theta='angle_minRad',
+            theta2='angle_maxRad',
+            radius='Occurence:Q',
+            radius2='radius2:Q',
+            color=alt.Color('Conditions de propagation', title=["Occurences de",  "conditions de", "propagation"]))
+        ligneHoriz = (
+        alt.Chart(pd.DataFrame({'x': (0, 1), 'y': (0, 1)}))
+            .mark_rule(strokeWidth=0.5, strokeDash=[6,4]).encode(x=alt.value(0),
+                                             x2=alt.value(largeur), 
+                                             y=alt.value(hauteur/2), 
+                                             y2=alt.value(hauteur/2)))
+        lignVert = (
+        alt.Chart(pd.DataFrame({'x': (0, 1), 'y': (0, 1)}))
+            .mark_rule(strokeWidth=0.5, strokeDash=[6,4]).encode(x=alt.value(largeur/2),
+                                             x2=alt.value(largeur/2), 
+                                             y=alt.value(0), 
+                                             y2=alt.value(hauteur)))
+        lign100 = alt.Chart(dfTxOccurenceConditions.iloc[0:18].assign(ref=1, ref2=0.99)).mark_arc(
+            width=4, color='lightgrey', padAngle=0.15).encode(
+                theta='angle_minRad',
+                theta2='angle_maxRad',
+                radius='ref', 
+                radius2='ref2')
+        lign80 = alt.Chart(dfTxOccurenceConditions.iloc[0:18].assign(ref=0.8, ref2=0.79)).mark_arc(
+            width=4, color='lightgrey', padAngle=0.15).encode(
+                theta='angle_minRad',
+                theta2='angle_maxRad',
+                radius='ref', 
+                radius2='ref2') 
+        lign60 = alt.Chart(dfTxOccurenceConditions.iloc[0:18].assign(ref=0.6, ref2=0.59)).mark_arc(
+            width=4, color='lightgrey', padAngle=0.15).encode(
+                theta='angle_minRad',
+                theta2='angle_maxRad',
+                radius='ref', 
+                radius2='ref2')
+        lign40 = alt.Chart(dfTxOccurenceConditions.iloc[0:18].assign(ref=0.4, ref2=0.39)).mark_arc(
+            width=4, color='lightgrey', padAngle=0.15).encode(
+                theta='angle_minRad',
+                theta2='angle_maxRad',
+                radius='ref', 
+                radius2='ref2')
+        lign20 = alt.Chart(dfTxOccurenceConditions.iloc[0:18].assign(ref=0.2, ref2=0.19)).mark_arc(
+            width=4, color='lightgrey', padAngle=0.15).encode(
+                theta='angle_minRad',
+                theta2='angle_maxRad',
+                radius='ref', 
+                radius2='ref2')
+        TextpointsCardinaux = alt.Chart(dfTxOccurenceConditions.iloc[0:18].assign(rad=1.1)).transform_filter(
+            "(datum.angle_min == 0) | (datum.angle_min == 180) | (datum.angle_min == 80) | (datum.angle_min == 260)").mark_text().encode(text='text_legende', theta='angle_minRad', radius='rad')
+        lign100 = lign100 + lign100.mark_text(color='grey').transform_filter("datum.angle_min == 180").encode(text=alt.Text('ref', format='.0%'))
+        lign80 = lign80 + lign80.mark_text(color='grey').transform_filter("datum.angle_min == 180").encode(text=alt.Text('ref', format='.0%'))
+        lign60 = lign60 + lign60.mark_text(color='grey').transform_filter("datum.angle_min == 180").encode(text=alt.Text('ref', format='.0%'))
+        lign40 = lign40 + lign40.mark_text(color='grey').transform_filter("datum.angle_min == 180").encode(text=alt.Text('ref', format='.0%'))
+        lign20 = lign20 + lign20.mark_text(color='grey').transform_filter("datum.angle_min == 180").encode(text=alt.Text('ref', format='.0%'))
+        chartOccurenceConditionsSecteur = base + ligneHoriz + lignVert + lign100 + lign80 + lign60 + lign40 + lign20 + TextpointsCardinaux
+        return dfTxOccurenceConditions, chartOccurenceConditionsSecteur
         
