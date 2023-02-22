@@ -550,18 +550,19 @@ def regrouperLigneDfValeurNonNulle(df, privilegeType='derniere'):
         elif privilegeType == 'premiere':
             return listePossible[0]
         
-def dateTexteDepuisDayOfYear(dayOfYear, annee):
+def dateTexteDepuisDayOfYear(dayOfYear, annee, formatSortie='%A %d %B %Y'):
     """
     depuis un integer dayofyear, renvoyer une date sous forme Lundi 4 novembre par exemple
     in : 
         day of year : integer positif
         annee : integer positif
+        formatSortie : string de formettage de sortie
     """
     if not (isinstance(dayOfYear, int) and isinstance(dayOfYear, int)):
         raise ValueError("le jour et l'annee doivent etre des entiers")
     if dayOfYear < 0 or annee < 0:
         raise ValueError("le jour et l'annee doivent etre positifs")
-    return datetime.strptime(str(annee) + '-' + str(dayOfYear).rjust(3 , '0'), '%Y-%j').strftime('%A %d %B %Y')
+    return datetime.strptime(str(annee) + '-' + str(dayOfYear).rjust(3 , '0'), '%Y-%j').strftime(formatSortie)
     
     
         
