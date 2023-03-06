@@ -6,7 +6,7 @@ Created on 2 sept. 2021
 '''
 import unittest
 from os.path import exists
-from Connexion_Transfert import ouvrirFichierParametre, ConnexionBdd
+from Connexions.Connexion_Transfert import ouvrirFichierParametre, ConnexionBdd
 
 
 class TestConnexionBdd(unittest.TestCase):
