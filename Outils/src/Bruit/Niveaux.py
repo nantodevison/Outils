@@ -58,7 +58,10 @@ def pression2Niveau(pression):
     out : 
         NiveauBruit : reel positif
     """
-    return 20*log10(pression/pRef)
+    if pression > 0:
+        return 20*log10(pression/pRef)
+    else : 
+        return 0
 
 
 def moyenneQuadratiquePression(iterablePression):
@@ -69,7 +72,10 @@ def moyenneQuadratiquePression(iterablePression):
     out :
         moyennequadratqPression : numeric : moyenne quadratique de pression
     """ 
-    return sqrt((1/len(iterablePression))*sum([pow(i, 2) for i in iterablePression]))
+    if len(iterablePression) > 0:
+        return sqrt((1/len(iterablePression))*sum([pow(i, 2) for i in iterablePression]))
+    else : 
+        return 0
 
 
 def agregationTemporelle(horoDateDebut, horodateFin, pasTemporelMinute, dfDonneesBrutes, sourceType, reglementaire=False):
@@ -124,4 +130,44 @@ def indexPeriodesReglementaires(horoDateDebut, horodateFin):
     return pd.DatetimeIndex(pd.concat([pd.Series(pd.date_range(horoDateDebut, horodateFin)) +
                                                        pd.Timedelta(hours=h) for h in (6, 18, 22)]
                                                       ).sort_values().reset_index(drop=True))
-    
+
+
+def calculHarmonica(df, attrHorodate, attrNiveauBruit):
+    """
+    Calculer l'indice Harmonica sur une dataframe contenant un attribut descriptif de l'heure et un attribut
+    descriptif du niveau de bruit.
+    """
+    # passer le temps en index
+    df = df.set_index(attrHorodate)
+    # calcul du bruit (bruit dépassé 95 pourcent du temps) de fond sur les 10 minutes les plus proches
+    df["bdf10min"] = df.rolling(pd.Timedelta("10min"), center=True)[
+        attrNiveauBruit
+    ].quantile(0.05)
+    # calcul du bruit de fond sur l'heure
+    dfBdfHoraire = (
+        df.resample("1H")
+        .bdf10min.apply(
+            lambda x: pression2Niveau(
+                moyenneQuadratiquePression(tuple(niveau2Pression(x)))
+            )
+        )
+        .reset_index()
+        .rename(columns={"bdf10min": "La95eq"})
+    )
+    # calcul du Leq sur l'heure
+    dfLaeqHoraire = (
+        df.resample("1H")
+        .leq_a.apply(
+            lambda x: pression2Niveau(
+                moyenneQuadratiquePression(tuple(niveau2Pression(x)))
+            )
+        )
+        .reset_index()
+    )
+    # jointure des deux
+    dfCalcul = dfBdfHoraire.merge(dfLaeqHoraire, on="date_heure")
+    # calcul des indicateurs
+    dfCalcul["bgn"] = 0.2 * (dfCalcul.La95eq - 30)
+    dfCalcul["evt"] = 0.25 * (dfCalcul.leq_a - dfCalcul.La95eq)
+    dfCalcul["harmonica"] = dfCalcul.bgn + dfCalcul.evt
+    return dfCalcul
