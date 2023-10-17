@@ -171,3 +171,36 @@ def calculHarmonica(df, attrHorodate, attrNiveauBruit):
     dfCalcul["evt"] = 0.25 * (dfCalcul.leq_a - dfCalcul.La95eq)
     dfCalcul["harmonica"] = dfCalcul.bgn + dfCalcul.evt
     return dfCalcul
+
+
+def calculIntermitencyRatio(dfNiveauBruit, C=3):
+    """ "
+    calcul de l'indicateur IntermitencyRatio sur une dataframe contenant des niveaux de bruit "leq_a",
+    selon Journal of Exposure Science and Environmental Epidemiology (2016) 26, 575 585; doi:10.1038/jes.2015.56; published online 9 September 2015
+    in :
+        dfNiveauBruit : dataframe pandas contenant l'attribut leq_a
+        C : niveau en dB a ajouté pour faire ressortir les evenements
+    out : 
+        IR1h : pourcentage de dose de son provenant d'évement sonores distincts
+    """
+    leqTot = 10 * log10(
+        (1 / len(dfNiveauBruit))
+        * sum([pow(10, 0.1 * l) for l in dfNiveauBruit.leq_a.to_list()])
+    )
+    # seuil
+    seuil = leqTot + C
+    # filtre des évenements
+    dfEvents = dfNiveauBruit.loc[dfNiveauBruit.leq_a > seuil]
+    # LeqEvents
+    LeqEvents = 10 * log10(
+        (1 / len(dfNiveauBruit))
+        * sum(
+            [
+                np.heaviside(l - seuil, 0) * pow(10, 0.1 * l)
+                for l in dfNiveauBruit.leq_a.to_list()
+            ]
+        )
+    )
+    # IR
+    IR1h = round((pow(10, 0.1 * LeqEvents) / pow(10, 0.1 * leqTot)) * 100, 2)
+    return IR1h
