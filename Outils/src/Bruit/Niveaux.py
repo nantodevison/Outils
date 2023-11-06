@@ -8,6 +8,7 @@ module de manipulation des niveaux de bruit
 from math import log10, sqrt
 from Outils.Outils import checkParamValues, checkAttributsinDf
 import pandas as pd
+import numpy as np
 
 pRef = 20*pow(10,-6) 
 sourceTypeAgregTemporalleList = ['pression', 'leq_a']
@@ -173,20 +174,24 @@ def calculHarmonica(df, attrHorodate, attrNiveauBruit):
     return dfCalcul
 
 
-def calculIntermitencyRatio(dfNiveauBruit, C=3):
+def calculIntermitencyRatio(dfNiveauBruit, C=3, seuilForce=None):
     """ "
     calcul de l'indicateur IntermitencyRatio sur une dataframe contenant des niveaux de bruit "leq_a",
     selon Journal of Exposure Science and Environmental Epidemiology (2016) 26, 575 585; doi:10.1038/jes.2015.56; published online 9 September 2015
     in :
         dfNiveauBruit : dataframe pandas contenant l'attribut leq_a
         C : niveau en dB a ajouté pour faire ressortir les evenements
+        seuilForce : niveau de bruit en db utilisé comme seuil, sans prendre en comptele LeqTot
     out : 
         IR1h : pourcentage de dose de son provenant d'évement sonores distincts
     """
-    leqTot = 10 * log10(
-        (1 / len(dfNiveauBruit))
-        * sum([pow(10, 0.1 * l) for l in dfNiveauBruit.leq_a.to_list()])
-    )
+    try: 
+        leqTot = 10 * log10(
+            (1 / len(dfNiveauBruit))
+            * sum([pow(10, 0.1 * l) for l in dfNiveauBruit.leq_a.to_list()])
+        )
+    except ZeroDivisionError:
+        return 0
     # seuil
     seuil = leqTot + C
     # filtre des évenements
