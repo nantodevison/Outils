@@ -185,15 +185,19 @@ def calculIntermitencyRatio(dfNiveauBruit, C=3, seuilForce=None):
     out : 
         IR1h : pourcentage de dose de son provenant d'évement sonores distincts
     """
-    try: 
-        leqTot = 10 * log10(
-            (1 / len(dfNiveauBruit))
-            * sum([pow(10, 0.1 * l) for l in dfNiveauBruit.leq_a.to_list()])
-        )
-    except ZeroDivisionError:
-        return 0
+    
     # seuil
-    seuil = leqTot + C
+    if not seuilForce:
+        try: 
+            leqTot = 10 * log10(
+                (1 / len(dfNiveauBruit))
+                * sum([pow(10, 0.1 * l) for l in dfNiveauBruit.leq_a.to_list()])
+            )
+        except ZeroDivisionError:
+            return 0
+        seuil = leqTot + C
+    else : 
+        seuil = seuilForce
     # filtre des évenements
     dfEvents = dfNiveauBruit.loc[dfNiveauBruit.leq_a > seuil]
     # LeqEvents
@@ -207,5 +211,5 @@ def calculIntermitencyRatio(dfNiveauBruit, C=3, seuilForce=None):
         )
     )
     # IR
-    IR1h = round((pow(10, 0.1 * LeqEvents) / pow(10, 0.1 * leqTot)) * 100, 2)
-    return IR1h
+    IR = round((pow(10, 0.1 * LeqEvents) / pow(10, 0.1 * leqTot)) * 100, 2)
+    return IR
