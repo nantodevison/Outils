@@ -214,4 +214,20 @@ def calculIntermitencyRatio(dfNiveauBruit, C=3, seuilForce=None):
     IR = round((pow(10, 0.1 * LeqEvents) / pow(10, 0.1 * leqTot)) * 100, 2)
     return IR
     
-    
+
+def ModulationTsfd(leq, tsfd, seuilLeq=60):
+    """
+    modifier le leq en fonction d'une valeurde tsfd, selon un seuil de trafic et de tsfd.
+    POur rappel, le TSFD se calcul en R avec la bibliotheque seewave, cf https://github.com/nantodevison/Ech24/blob/main/notebooks/R_seewave.ipynb
+    in : 
+        leq : float ou integer
+        tsfd : float entre 0 et 1
+        seuilLeq : niveau de leq à partir duquel on applique un malus si le TSFD est inf à 0.1
+    """
+    if leq >= seuilLeq and tsfd * 10 <= 1:
+        correctionTsfd = log10((tsfd)) * -1
+    elif tsfd * 10 > 1:
+        correctionTsfd = exp(2 * tsfd) * -1
+    else:
+        correctionTsfd = 0
+    return correctionTsfd   
