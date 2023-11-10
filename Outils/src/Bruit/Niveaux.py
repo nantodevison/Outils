@@ -5,7 +5,7 @@ Created on 25 mai 2022
 @author: martin.schoreisz
 module de manipulation des niveaux de bruit
 '''
-from math import log10, sqrt
+from math import log10, sqrt, exp
 from Outils.Outils import checkParamValues, checkAttributsinDf
 import pandas as pd
 import numpy as np
