@@ -5,9 +5,10 @@ Created on 25 mai 2022
 @author: martin.schoreisz
 module de manipulation des niveaux de bruit
 '''
-from math import log10, sqrt
+from math import log10, sqrt, exp
 from Outils.Outils import checkParamValues, checkAttributsinDf
 import pandas as pd
+import numpy as np
 
 pRef = 20*pow(10,-6) 
 sourceTypeAgregTemporalleList = ['pression', 'leq_a']
@@ -58,7 +59,10 @@ def pression2Niveau(pression):
     out : 
         NiveauBruit : reel positif
     """
-    return 20*log10(pression/pRef)
+    if pression > 0:
+        return 20*log10(pression/pRef)
+    else : 
+        return 0
 
 
 def moyenneQuadratiquePression(iterablePression):
@@ -69,7 +73,10 @@ def moyenneQuadratiquePression(iterablePression):
     out :
         moyennequadratqPression : numeric : moyenne quadratique de pression
     """ 
-    return sqrt((1/len(iterablePression))*sum([pow(i, 2) for i in iterablePression]))
+    if len(iterablePression) > 0:
+        return sqrt((1/len(iterablePression))*sum([pow(i, 2) for i in iterablePression]))
+    else : 
+        return 0
 
 
 def agregationTemporelle(horoDateDebut, horodateFin, pasTemporelMinute, dfDonneesBrutes, sourceType, reglementaire=False):
@@ -124,4 +131,103 @@ def indexPeriodesReglementaires(horoDateDebut, horodateFin):
     return pd.DatetimeIndex(pd.concat([pd.Series(pd.date_range(horoDateDebut, horodateFin)) +
                                                        pd.Timedelta(hours=h) for h in (6, 18, 22)]
                                                       ).sort_values().reset_index(drop=True))
+
+
+def calculHarmonica(df, attrHorodate, attrNiveauBruit):
+    """
+    Calculer l'indice Harmonica sur une dataframe contenant un attribut descriptif de l'heure et un attribut
+    descriptif du niveau de bruit.
+    """
+    # passer le temps en index
+    df = df.set_index(attrHorodate)
+    # calcul du bruit (bruit dépassé 95 pourcent du temps) de fond sur les 10 minutes les plus proches
+    df["bdf10min"] = df.rolling(pd.Timedelta("10min"), center=True)[
+        attrNiveauBruit
+    ].quantile(0.05)
+    # calcul du bruit de fond sur l'heure
+    dfBdfHoraire = (
+        df.resample("1H")
+        .bdf10min.apply(
+            lambda x: pression2Niveau(
+                moyenneQuadratiquePression(tuple(niveau2Pression(x)))
+            )
+        )
+        .reset_index()
+        .rename(columns={"bdf10min": "La95eq"})
+    )
+    # calcul du Leq sur l'heure
+    dfLaeqHoraire = (
+        df.resample("1H")
+        .leq_a.apply(
+            lambda x: pression2Niveau(
+                moyenneQuadratiquePression(tuple(niveau2Pression(x)))
+            )
+        )
+        .reset_index()
+    )
+    # jointure des deux
+    dfCalcul = dfBdfHoraire.merge(dfLaeqHoraire, on="date_heure")
+    # calcul des indicateurs
+    dfCalcul["bgn"] = 0.2 * (dfCalcul.La95eq - 30)
+    dfCalcul["evt"] = 0.25 * (dfCalcul.leq_a - dfCalcul.La95eq)
+    dfCalcul["harmonica"] = dfCalcul.bgn + dfCalcul.evt
+    return dfCalcul
+
+
+def calculIntermitencyRatio(dfNiveauBruit, C=3, seuilForce=None):
+    """ "
+    calcul de l'indicateur IntermitencyRatio sur une dataframe contenant des niveaux de bruit "leq_a",
+    selon Journal of Exposure Science and Environmental Epidemiology (2016) 26, 575 585; doi:10.1038/jes.2015.56; published online 9 September 2015
+    in :
+        dfNiveauBruit : dataframe pandas contenant l'attribut leq_a
+        C : niveau en dB a ajouté pour faire ressortir les evenements
+        seuilForce : niveau de bruit en db utilisé comme seuil, sans prendre en comptele LeqTot
+    out : 
+        IR1h : pourcentage de dose de son provenant d'évement sonores distincts
+    """
+    try: 
+        leqTot = 10 * log10(
+            (1 / len(dfNiveauBruit))
+            * sum([pow(10, 0.1 * l) for l in dfNiveauBruit.leq_a.to_list()])
+        )
+    except ZeroDivisionError:
+        return 0
+    # seuil
+    if not seuilForce:
+        seuil = leqTot + C
+    else : 
+        seuil = seuilForce
+    # LeqEvents
+    try:
+        LeqEvents = 10 * log10(
+            (1 / len(dfNiveauBruit))
+            * sum(
+                [
+                    np.heaviside(l - seuil, 0) * pow(10, 0.1 * l)
+                    for l in dfNiveauBruit.leq_a.to_list()
+                ]
+            )
+        )
+    except ValueError:
+        LeqEvents = 10 * log10(0.0001)
+    # IR
+    IR = round((pow(10, 0.1 * LeqEvents) / pow(10, 0.1 * leqTot)) * 100, 2)
+    return IR
     
+
+def ModulationTsfd(leq, tsfd, seuilLeq=60):
+    """
+    modifier le leq en fonction d'une valeurde tsfd, selon un seuil de trafic et de tsfd.
+    POur rappel, le TSFD se calcul en R avec la bibliotheque seewave, cf https://github.com/nantodevison/Ech24/blob/main/notebooks/R_seewave.ipynb
+    in : 
+        leq : float ou integer
+        tsfd : float entre 0 et 1
+        seuilLeq : niveau de leq à partir duquel on applique un malus si le TSFD est inf à 0.1
+    """
+    if leq >= seuilLeq and tsfd * 10 <= 1:
+        correctionTsfd = log10((tsfd)) * -1
+    elif tsfd * 10 > 1:
+        correctionTsfd = exp(2 * tsfd) * -1
+    else:
+        correctionTsfd = 0
+    return correctionTsfd   
